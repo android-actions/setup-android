@@ -1,0 +1,23 @@
+{
+  // Example:
+  // warning   unused-exclude-by-conf             the exclude dependency is not in your dependency graph, so has no effect
+  // app/build.gradle:45
+  "problemMatcher": [
+    {
+      "owner": "gradle",
+      "pattern": [
+        {
+          "regexp": "^(error|quiet|warning|lifecycle|info|debug)\\s+(\\S+)\\s+(.+)$",
+          "severity": 1,
+          "code": 2,
+          "message": 3
+        },
+        {
+          "regexp": "^([^\\s]+):([\\d]+)$",
+          "file": 1,
+          "line": 2
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+    // Example:
+    // /path/to/file/build.gradle:55: Warning: A newer version of androidx.core:core-ktx than 1.2.0-beta01 is available: 1.2.0-rc01 [GradleDependency]
+    "problemMatcher": [
+      {
+        "owner": "android-lint-line",
+        "pattern": [
+          {
+            "regexp": "^(.+):(\\d+):\\s+(Warning|Error):\\s+(.+)\\s+\\[(.+)\\]$",
+            "file": 1,
+            "line": 2,
+            "severity": 3,
+            "message": 4,
+            "code": 5
+          }
+        ]
+      }
+    ]
+}

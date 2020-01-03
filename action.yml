@@ -1,0 +1,5 @@
+name: 'Android Problem Matchers'
+description: 'Adds common problem matchers for Android builds'
+runs:
+  using: 'node12'
+  main: 'index.js'
