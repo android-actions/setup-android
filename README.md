@@ -1,6 +1,12 @@
 # Android Problem Matchers
 
-Adds common problem matchers for Android builds to GitHub Action workflows.
+Adds common problem matchers for Android builds to GitHub Action workflows. Currently adds support for the following tools:
+
+* Kotlin compiler
+* Android Lint
+* Gradle
+
+This action only configures the problem matchers in order to be compatible with diverse Android workflows.
 
 ## Inputs
 

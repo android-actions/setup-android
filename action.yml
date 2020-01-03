@@ -1,5 +1,9 @@
 name: 'Android Problem Matchers'
+author: 'Jonas Bengtsson'
 description: 'Adds common problem matchers for Android builds'
 runs:
   using: 'node12'
   main: 'index.js'
+branding:
+  icon: 'list'
+  color: 'green'
