@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Run Gradle CI",
+      "label": "Run test with problem watchers",
       "type": "shell",
       "command": "./test.js",
       "group": {

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 console.log(`::add-matcher::${__dirname}/.github/android-lint-file-matcher.json`);
 console.log(`::add-matcher::${__dirname}/.github/android-lint-line-matcher.json`);
 console.log(`::add-matcher::${__dirname}/.github/gradle-matcher.json`);
