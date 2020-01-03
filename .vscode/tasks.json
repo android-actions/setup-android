@@ -1,0 +1,107 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Gradle CI",
+      "type": "shell",
+      "command": "./test.js",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      // N.B. Copy of contents in .github/*-matcher.json
+      "problemMatcher": [
+        {
+          // Kotlin warnings. e.g.
+          // w: /path/to/file/KotlinFile.kt: (14, 5): Parameter 'foo' is never used
+          "owner": "kotlin-warning",
+          "pattern": [
+            {
+              "regexp": "^w:\\s+(\\S+):\\s+\\((\\d+),\\s+(\\d+)\\):\\s+(.+)$",
+              "file": 1,
+              "line": 2,
+              "column": 3,
+              "message": 4
+            }
+          ],
+          "fileLocation": "absolute",
+          "severity": "warning"
+        },
+        {
+          // Kotlin errors. e.g.
+          // e: /path/to/file/KotlinFile.kt: (14, 5): Val cannot be reassigned
+          "owner": "kotlin-error",
+          "pattern": [
+            {
+              "regexp": "^e:\\s+(\\S+):\\s+\\((\\d+),\\s+(\\d+)\\):\\s+(.+)$",
+              "file": 1,
+              "line": 2,
+              "column": 3,
+              "message": 4
+            }
+          ],
+          "fileLocation": "absolute",
+          "severity": "error"
+        },
+        {
+          // Android line lint checks, e.g.
+          // /path/to/file/build.gradle:55: Warning: A newer version of androidx.core:core-ktx than 1.2.0-beta01 is available: 1.2.0-rc01 [GradleDependency]
+          "owner": "android-lint-line",
+          "pattern": [
+            {
+              "regexp": "^(.+):(\\d+):\\s+(Warning|Error):\\s+(.+)\\s+\\[(.+)\\]$",
+              "file": 1,
+              "line": 2,
+              "severity": 3,
+              "message": 4,
+              "code": 5
+            }
+          ],
+          "fileLocation": "absolute"
+        },
+        {
+          // Android file lint checks, e.g.
+          // /path/to/file/file.class: Warning: checkClientTrusted is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers [TrustAllX509TrustManager]
+          "owner": "android-lint-file",
+          "pattern": [
+            {
+              "regexp": "^(.+):\\s+(Warning|Error):\\s+(.+)\\s+\\[(.+)\\]$",
+              "file": 1,
+              "severity": 2,
+              "message": 3,
+              "code": 4,
+              "kind": "file"
+            }
+          ],
+          "fileLocation": "absolute"
+        },
+        {
+          // Gradle logging, e.g.
+          // warning   unused-exclude-by-conf             the exclude dependency is not in your dependency graph, so has no effect
+          // app/build.gradle:45
+          "owner": "gradle",
+          "pattern": [
+            {
+              "regexp": "^(error|quiet|warning|lifecycle|info|debug)\\s+(\\S+)\\s+(.+)$",
+              "severity": 1,
+              "code": 2,
+              "message": 3
+            },
+            {
+              "regexp": "^([^\\s]+):([\\d]+)$",
+              "file": 1,
+              "line": 2
+            }
+          ],
+          "fileLocation": "relative"
+        }
+      ]
+    }
+  ]
+}
