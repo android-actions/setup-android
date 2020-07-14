@@ -1,12 +1,47 @@
 {
-  "name": "android-problem-matchers-action",
+  "name": "setup-android",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "setup android action",
+  "main": "lib/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "format": "prettier --write **/*.ts",
+    "format-check": "prettier --check **/*.ts",
+    "lint": "eslint src/**/*.ts",
+    "pack": "ncc build",
+    "test": "jest",
+    "all": "npm run build && npm run format && npm run lint && npm run pack && npm test"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daveol/setup-android.git"
+  },
+  "keywords": [
+    "actions",
+    "node",
+    "setup",
+    "android"
+  ],
+  "author": "daveol",
+  "license": "ISC",
+  "dependencies": {
+    "@actions/core": "^1.2.0",
+    "@actions/tool-cache": "^1.5.5"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.23",
+    "@types/node": "^12.7.12",
+    "@typescript-eslint/parser": "^2.8.0",
+    "@zeit/ncc": "^0.20.5",
+    "eslint": "^5.16.0",
+    "eslint-plugin-github": "^2.0.0",
+    "eslint-plugin-jest": "^22.21.0",
+    "jest": "^24.9.0",
+    "jest-circus": "^24.9.0",
+    "js-yaml": "^3.13.1",
+    "prettier": "^1.19.1",
+    "ts-jest": "^24.2.0",
+    "typescript": "^3.6.4"
+  }
 }
