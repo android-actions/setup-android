@@ -1405,6 +1405,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const path = __importStar(__webpack_require__(622));
 const tc = __importStar(__webpack_require__(533));
+const fs = __importStar(__webpack_require__(747));
 const matchers = [
     'android-lint-file-matcher.json',
     'android-lint-line-matcher.json',
@@ -1412,6 +1413,9 @@ const matchers = [
     'kotlin-error-matcher.json',
     'kotlin-warning-matcher.json'
 ];
+const licenses = {
+    'android-sdk-license': '\n24333f8a63b6825ea9c5514f83c2829b004d1fee'
+};
 let tempDirectory = process.env['RUNNER_TEMP'] || '';
 const IS_WINDOWS = process.platform === 'win32';
 const cmdToolsVersion = '6609375';
@@ -1445,11 +1449,19 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         const tempDir = path.join(tempDirectory, `temp_${Math.floor(Math.random() * 2000000000)}`);
         const androidHome = path.join(tempDir, 'android');
+        const cmdlineTools = path.join(androidHome, 'cmdline-tools');
         const cmdToolsZip = yield tc.downloadTool(`https://dl.google.com/android/repository/commandlinetools-${cmdToolsOS}-${cmdToolsVersion}_latest.zip`);
         core.debug('extract android commandlinetools');
-        yield tc.extractZip(cmdToolsZip, androidHome);
+        yield tc.extractZip(cmdToolsZip, cmdlineTools);
         core.exportVariable('ANDROID_HOME', androidHome);
-        core.addPath(path.join(androidHome, 'tools', 'bin'));
+        core.exportVariable('ANDROID_SDK_ROOT', androidHome);
+        core.addPath(path.join(cmdlineTools, 'tools', 'bin'));
+        const licenseDir = path.join(androidHome, 'licenses');
+        fs.existsSync(licenseDir) || fs.mkdirSync(licenseDir);
+        for (const [licenseName, licenseHash] of Object.entries(licenses)) {
+            const licenseFile = path.join(licenseDir, licenseName);
+            fs.appendFileSync(licenseFile, licenseHash);
+        }
         core.debug('add matchers');
         const matchersPath = path.join(__dirname, '..', '.github');
         for (const matcher of matchers) {

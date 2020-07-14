@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import * as path from 'path'
 import * as tc from '@actions/tool-cache'
-import * as fs from 'fs';
+import * as fs from 'fs'
 
 const matchers = [
   'android-lint-file-matcher.json',
