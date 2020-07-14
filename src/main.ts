@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import * as path from 'path'
 import * as tc from '@actions/tool-cache'
+import * as fs from 'fs';
 
 const matchers = [
   'android-lint-file-matcher.json',
@@ -9,6 +10,10 @@ const matchers = [
   'kotlin-error-matcher.json',
   'kotlin-warning-matcher.json'
 ]
+
+const licenses = {
+  'android-sdk-license': '\n24333f8a63b6825ea9c5514f83c2829b004d1fee'
+}
 
 let tempDirectory = process.env['RUNNER_TEMP'] || ''
 
@@ -49,17 +54,26 @@ async function run(): Promise<void> {
   )
 
   const androidHome = path.join(tempDir, 'android')
+  const cmdlineTools = path.join(androidHome, 'cmdline-tools')
 
   const cmdToolsZip = await tc.downloadTool(
     `https://dl.google.com/android/repository/commandlinetools-${cmdToolsOS}-${cmdToolsVersion}_latest.zip`
   )
 
   core.debug('extract android commandlinetools')
-  await tc.extractZip(cmdToolsZip, androidHome)
+  await tc.extractZip(cmdToolsZip, cmdlineTools)
 
   core.exportVariable('ANDROID_HOME', androidHome)
+  core.exportVariable('ANDROID_SDK_ROOT', androidHome)
 
-  core.addPath(path.join(androidHome, 'tools', 'bin'))
+  core.addPath(path.join(cmdlineTools, 'tools', 'bin'))
+
+  const licenseDir = path.join(androidHome, 'licenses')
+  fs.existsSync(licenseDir) || fs.mkdirSync(licenseDir)
+  for (const [licenseName, licenseHash] of Object.entries(licenses)) {
+    const licenseFile = path.join(licenseDir, licenseName)
+    fs.appendFileSync(licenseFile, licenseHash)
+  }
 
   core.debug('add matchers')
   const matchersPath = path.join(__dirname, '..', '.github')
