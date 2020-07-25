@@ -36,7 +36,7 @@ jobs:
 
       - name: Setup Android SDK
         id: 'setup-android'
-        uses: ../setup-android/
+        uses: ./../setup-android/
 
       - name: Build SampleApplication
         if: runner.os != 'windows'
