@@ -27,7 +27,7 @@ jobs:
 
       - uses: actions/checkout@v2
         with:
-          path: ../setup-android/
+          path: ../setup-android-action/
 
       - name: Set up JDK 1.8
         uses: actions/setup-java@v1
@@ -36,7 +36,7 @@ jobs:
 
       - name: Setup Android SDK
         id: 'setup-android'
-        uses: ./../setup-android/
+        uses: ./../setup-android-action/
 
       - name: Build SampleApplication
         if: runner.os != 'windows'
