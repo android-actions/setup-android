@@ -16,7 +16,8 @@ import {
   COMMANDLINE_TOOLS_VERSION,
   ANDROID_SDK_ROOT,
   ANDROID_REPOSITORIES_CACHE,
-  ANDROID_REPOSITORIES_CFG
+  ANDROID_REPOSITORIES_CFG,
+  VERSION
 } from './constants'
 
 async function hashFiles(globs: string[]): Promise<string | undefined> {
@@ -133,10 +134,10 @@ export async function postGradleCache(): Promise<void> {
 
 export async function preAndroidCache(): Promise<void> {
   const androidHash = await hashFiles(ANDROID_GLOB)
-  const androidKey = `android-${platform}-${COMMANDLINE_TOOLS_VERSION}-${androidHash}`
+  const androidKey = `android-${VERSION}-${platform}-${COMMANDLINE_TOOLS_VERSION}-${androidHash}`
   const androidRestoreKeys = [
-    `android-${platform}-${COMMANDLINE_TOOLS_VERSION}-`,
-    `android-${platform}-`
+    `android-${VERSION}-${platform}-${COMMANDLINE_TOOLS_VERSION}-`,
+    `android-${VERSION}-${platform}-`
   ]
 
   if (!androidHash) {

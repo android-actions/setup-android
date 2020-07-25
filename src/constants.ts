@@ -11,6 +11,8 @@ export const ANNOTATION_MATCHERS = [
 
 export const HOME = os.homedir()
 
+export const VERSION = 'v1'
+
 // Gradle constants
 // For caching the gradle cache in ~/.gradle/cache
 export const GRADLE_CACHE_GLOB = [
