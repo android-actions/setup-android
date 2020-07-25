@@ -24,7 +24,7 @@ export async function install(): Promise<void> {
   if (process.platform === 'linux') {
     const cmdlineToolsZip = await tc.downloadTool(COMMANDLINE_TOOLS_LIN_URL)
     const cmdlineTools = await tc.extractZip(cmdlineToolsZip)
-    const sdkManager = path.join(cmdlineTools, 'tools', 'sdkmanager')
+    const sdkManager = path.join(cmdlineTools, 'tools', 'bin', 'sdkmanager')
 
     console.log(fs.readdirSync(cmdlineTools))
     console.log(fs.existsSync(sdkManager))
@@ -39,7 +39,7 @@ export async function install(): Promise<void> {
   } else if (process.platform === 'darwin') {
     const cmdlineToolsZip = await tc.downloadTool(COMMANDLINE_TOOLS_MAC_URL)
     const cmdlineTools = await tc.extractZip(cmdlineToolsZip)
-    const sdkManager = path.join(cmdlineTools, 'tools', 'sdkmanager')
+    const sdkManager = path.join(cmdlineTools, 'tools', 'bin', 'sdkmanager')
 
     exec.exec(
       sdkManager,
@@ -51,7 +51,7 @@ export async function install(): Promise<void> {
   } else if (process.platform === 'win32') {
     const cmdlineToolsZip = await tc.downloadTool(COMMANDLINE_TOOLS_WIN_URL)
     const cmdlineTools = await tc.extractZip(cmdlineToolsZip)
-    const sdkManager = path.join(cmdlineTools, 'tools', 'sdkmanager.bat')
+    const sdkManager = path.join(cmdlineTools, 'tools', 'bin', 'sdkmanager.bat')
 
     exec.exec(
       sdkManager,
