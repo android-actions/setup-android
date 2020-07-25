@@ -1,9 +1,13 @@
 name: 'Setup Android build environment'
 author: 'Dave Olsthoorn'
 description: 'Setup the sdk commandline tools for Android like sdkmanager'
+
 runs:
   using: 'node12'
-  main: 'dist/index.js'
+  main: 'dist/main/index.js'
+  post: 'dist/post/index.js'
+  post-if: success()
+
 branding:
   icon: 'list'
   color: 'green'

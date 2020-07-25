@@ -1,83 +1,24 @@
 import * as core from '@actions/core'
 import * as path from 'path'
-import * as tc from '@actions/tool-cache'
-import * as fs from 'fs'
-
-const matchers = [
-  'android-lint-file-matcher.json',
-  'android-lint-line-matcher.json',
-  'gradle-matcher.json',
-  'kotlin-error-matcher.json',
-  'kotlin-warning-matcher.json'
-]
-
-const licenses = {
-  'android-sdk-license': '\n24333f8a63b6825ea9c5514f83c2829b004d1fee'
-}
-
-let tempDirectory = process.env['RUNNER_TEMP'] || ''
-
-const IS_WINDOWS = process.platform === 'win32'
-
-const cmdToolsVersion = '6609375'
-
-let cmdToolsOS: string
-if (process.platform === 'win32') {
-  cmdToolsOS = 'win'
-}
-if (process.platform === 'darwin') {
-  cmdToolsOS = 'mac'
-}
-if (process.platform === 'linux') {
-  cmdToolsOS = 'linux'
-}
-
-if (!tempDirectory) {
-  let baseLocation
-  if (IS_WINDOWS) {
-    // On windows use the USERPROFILE env variable
-    baseLocation = process.env['USERPROFILE'] || 'C:\\'
-  } else {
-    if (process.platform === 'darwin') {
-      baseLocation = '/Users'
-    } else {
-      baseLocation = '/home'
-    }
-  }
-  tempDirectory = path.join(baseLocation, 'actions', 'temp')
-}
+import {ANDROID_SDK_ROOT, ANNOTATION_MATCHERS} from './constants'
+import {preGradleCache, preAndroidCache, preGradleWrapper} from './cache'
+import {install} from './install'
 
 async function run(): Promise<void> {
-  const tempDir: string = path.join(
-    tempDirectory,
-    `temp_${Math.floor(Math.random() * 2000000000)}`
-  )
+  // process all caching but wait for them to all complete
+  await Promise.all([preGradleWrapper(), preGradleCache(), preAndroidCache()])
 
-  const androidHome = path.join(tempDir, 'android')
-  const cmdlineTools = path.join(androidHome, 'cmdline-tools')
+  await install()
 
-  const cmdToolsZip = await tc.downloadTool(
-    `https://dl.google.com/android/repository/commandlinetools-${cmdToolsOS}-${cmdToolsVersion}_latest.zip`
-  )
+  core.exportVariable('ANDROID_HOME', ANDROID_SDK_ROOT)
+  core.exportVariable('ANDROID_SDK_ROOT', ANDROID_SDK_ROOT)
 
-  core.debug('extract android commandlinetools')
-  await tc.extractZip(cmdToolsZip, cmdlineTools)
-
-  core.exportVariable('ANDROID_HOME', androidHome)
-  core.exportVariable('ANDROID_SDK_ROOT', androidHome)
-
-  core.addPath(path.join(cmdlineTools, 'tools', 'bin'))
-
-  const licenseDir = path.join(androidHome, 'licenses')
-  fs.existsSync(licenseDir) || fs.mkdirSync(licenseDir)
-  for (const [licenseName, licenseHash] of Object.entries(licenses)) {
-    const licenseFile = path.join(licenseDir, licenseName)
-    fs.appendFileSync(licenseFile, licenseHash)
-  }
+  core.addPath(path.join(ANDROID_SDK_ROOT, 'tools', 'bin'))
+  core.addPath(path.join(ANDROID_SDK_ROOT, 'platform-tools'))
 
   core.debug('add matchers')
-  const matchersPath = path.join(__dirname, '..', '.github')
-  for (const matcher of matchers) {
+  const matchersPath = path.join(__dirname, '..', '..', '.github')
+  for (const matcher of ANNOTATION_MATCHERS) {
     console.log(`##[add-matcher]${path.join(matchersPath, matcher)}`)
   }
 }
