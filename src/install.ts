@@ -49,7 +49,11 @@ export async function install(): Promise<void> {
     core.error(`Unsupported platform: ${process.platform}`)
   }
 
-  exec.exec(sdkManager, ['--licenses'], {input: acceptBuffer})
+  await exec.exec(
+    sdkManager,
+    ['--licenses', `--sdk_root=${ANDROID_SDK_ROOT}`],
+    {input: acceptBuffer}
+  )
 
   exec.exec(
     sdkManager,
