@@ -13,35 +13,30 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        operating-system:
+        os:
           - ubuntu-latest
           - windows-latest
           - macos-latest
     steps:
       - uses: actions/checkout@v2
         with:
-          path: setup-android
-      - uses: actions/checkout@v2
-        with:
-          repository: westnordost/StreetComplete
-          path: streetcomplete
+          repository: daveol/SampleApplication
+
       - name: Set up JDK 1.8
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
+
       - name: Setup Android SDK
-        id: 'setup-android'
-        uses: ./setup-android/
-      - name: Run sdkmanager
+        uses: ${{ github.repository }}@${{ github.ref }}
+
+      - name: Build SampleApplication
         if: runner.os != 'windows'
-        run: |
-          cd streetcomplete
-          ./gradlew build
+        run: ./gradlew --no-daemon build
+
       - name: Build streetcomplete (Windows)
         if: runner.os == 'windows'
-        run: |
-          cd streetcomplete
-          .\gradlew.bat build
+        run: .\gradlew.bat --no-daemon build
