@@ -16,13 +16,13 @@ export const HOME = os.homedir()
 export const GRADLE_CACHE_GLOB = [
   '**/*.gradle',
   '**.gradle',
-  'gradle.properties'
+  '**/gradle.properties'
 ]
 export const GRADLE_CACHE_DIR = path.join(HOME, '.gradle', 'cache')
 export const GRADLE_CACHE_KEY = 'GRADLE_CACHE_KEY'
 
 // For caching the gradle wrapper in ~/.gradle/wrapper
-export const GRADLE_WRAPPER_GLOB = ['gradle/wrapper/**', 'gradlew*']
+export const GRADLE_WRAPPER_GLOB = ['**/gradle/wrapper/**', '**/gradlew*']
 export const GRADLE_WRAPPER_DIR = path.join(HOME, '.gradle', 'wrapper')
 export const GRADLE_WRAPPER_KEY = 'GRADLE_WRAPPER_KEY'
 

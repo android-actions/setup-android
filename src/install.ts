@@ -26,6 +26,9 @@ export async function install(): Promise<void> {
     const cmdlineTools = await tc.extractZip(cmdlineToolsZip)
     const sdkManager = path.join(cmdlineTools, 'tools', 'sdkmanager')
 
+    console.log(fs.readdirSync(cmdlineTools))
+    console.log(fs.existsSync(sdkManager))
+
     exec.exec(
       sdkManager,
       ['--include_obsolete', `--sdk_root=${ANDROID_SDK_ROOT}`, 'tools'],
