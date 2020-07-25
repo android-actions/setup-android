@@ -61,7 +61,6 @@ export async function preGradleWrapper(): Promise<void> {
     core.info('A hash for the gradle wrapper could not be generated')
     return
   }
-  core.saveState(GRADLE_WRAPPER_KEY, wrapperKey)
 
   const wrapperCache = await cache.restoreCache(
     [GRADLE_WRAPPER_DIR],
@@ -73,6 +72,10 @@ export async function preGradleWrapper(): Promise<void> {
     core.info(
       'Gradle wrapper cache not found, expect a download from gradle wrapper.'
     )
+  }
+
+  if (wrapperCache !== wrapperKey) {
+    core.saveState(GRADLE_WRAPPER_KEY, wrapperKey)
   }
 
   return
@@ -102,7 +105,6 @@ export async function preGradleCache(): Promise<void> {
     core.info('A hash for the gradle dependencies could not be generated')
     return
   }
-  core.saveState(GRADLE_CACHE_KEY, cacheKey)
 
   const cacheCache = await cache.restoreCache(
     [GRADLE_CACHE_DIR],
@@ -112,6 +114,10 @@ export async function preGradleCache(): Promise<void> {
 
   if (!cacheCache) {
     core.info('Gradle cache not found, expect dependency downloads from gradle')
+  }
+
+  if (cacheCache !== cacheKey) {
+    core.saveState(GRADLE_CACHE_KEY, cacheKey)
   }
 
   return
@@ -144,7 +150,6 @@ export async function preAndroidCache(): Promise<void> {
     core.info('A hash for the android sdk could not be generated')
     return
   }
-  core.saveState(ANDROID_KEY, androidKey)
 
   const androidCache = await cache.restoreCache(
     [ANDROID_SDK_ROOT, ANDROID_REPOSITORIES_CACHE, ANDROID_REPOSITORIES_CFG],
@@ -153,7 +158,13 @@ export async function preAndroidCache(): Promise<void> {
   )
 
   if (!androidCache) {
-    core.info('Gradle cache not found, expect dependency downloads from gradle')
+    core.info(
+      'Android cache not found, expect dependency downloads from gradle'
+    )
+  }
+
+  if (androidCache !== androidKey) {
+    core.saveState(ANDROID_KEY, androidKey)
   }
 
   return
