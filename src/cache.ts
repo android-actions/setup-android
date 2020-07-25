@@ -14,7 +14,9 @@ import {
   ANDROID_GLOB,
   ANDROID_KEY,
   COMMANDLINE_TOOLS_VERSION,
-  ANDROID_SDK_ROOT
+  ANDROID_SDK_ROOT,
+  ANDROID_REPOSITORIES_CACHE,
+  ANDROID_REPOSITORIES_CFG
 } from './constants'
 
 async function hashFiles(globs: string[]): Promise<string | undefined> {
@@ -144,7 +146,7 @@ export async function preAndroidCache(): Promise<void> {
   core.saveState(ANDROID_KEY, androidKey)
 
   const androidCache = await cache.restoreCache(
-    [GRADLE_CACHE_DIR],
+    [ANDROID_SDK_ROOT, ANDROID_REPOSITORIES_CACHE, ANDROID_REPOSITORIES_CFG],
     androidKey,
     androidRestoreKeys
   )
@@ -166,7 +168,10 @@ export async function postAndroidCache(): Promise<void> {
     return
   }
 
-  await cache.saveCache([ANDROID_SDK_ROOT], androidKey)
+  await cache.saveCache(
+    [ANDROID_SDK_ROOT, ANDROID_REPOSITORIES_CACHE, ANDROID_REPOSITORIES_CFG],
+    androidKey
+  )
 
   return
 }

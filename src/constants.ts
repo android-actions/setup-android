@@ -31,6 +31,16 @@ export const ANDROID_SDK_ROOT = path.join(HOME, 'android')
 export const ANDROID_GLOB = GRADLE_CACHE_GLOB
 export const ANDROID_KEY = 'ANDROID_KEY'
 
+export const ANDROID_REPOSITORIES_DIR = path.join(HOME, '.android')
+export const ANDROID_REPOSITORIES_CFG = path.join(
+  ANDROID_REPOSITORIES_DIR,
+  'repositories.cfg'
+)
+export const ANDROID_REPOSITORIES_CACHE = path.join(
+  ANDROID_REPOSITORIES_DIR,
+  'cache'
+)
+
 export const COMMANDLINE_TOOLS_VERSION = '6609375'
 export const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
 export const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
