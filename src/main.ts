@@ -19,6 +19,7 @@ async function run(): Promise<void> {
   core.debug('add matchers')
   const matchersPath = path.join(__dirname, '..', '..', '.github')
   for (const matcher of ANNOTATION_MATCHERS) {
+    // eslint-disable-next-line no-console
     console.log(`##[add-matcher]${path.join(matchersPath, matcher)}`)
   }
 }
