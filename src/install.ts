@@ -25,12 +25,7 @@ export async function install(): Promise<void> {
   fs.mkdirSync(ANDROID_REPOSITORIES_DIR, {recursive: true})
   fs.closeSync(fs.openSync(ANDROID_REPOSITORIES_CFG, 'w'))
 
-  const acceptBuffer = Buffer.from(
-    Array(10)
-      .fill('y')
-      .join('\n'),
-    'utf8'
-  )
+  const acceptBuffer = Buffer.from(Array(10).fill('y').join('\n'), 'utf8')
   let sdkManager = ''
 
   if (process.platform === 'linux') {
