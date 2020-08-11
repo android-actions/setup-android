@@ -1,4 +1,4 @@
-name: build-test
+name: Build & Test
 
 on:
   pull_request:
@@ -6,17 +6,14 @@ on:
       - '**.md'
   push:
     branches:
-      - master
+      - main
       - releases/*
     paths-ignore:
       - '**.md'
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
