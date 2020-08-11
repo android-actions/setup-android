@@ -1,6 +1,6 @@
-name: 'Setup Android build environment'
-author: 'Dave Olsthoorn'
-description: 'Setup the sdk commandline tools for Android like sdkmanager'
+name: 'Setup Android SDK Tools'
+author: 'Android-Actions'
+description: 'Setup the Android SDK Tools and add them to the path'
 
 runs:
   using: 'node12'
