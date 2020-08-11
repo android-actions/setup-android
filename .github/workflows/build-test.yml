@@ -20,12 +20,50 @@ jobs:
       - name: Setup node 12
         uses: actions/setup-node@v2.1.1
         with:
-          node-version: 12.x
+          node-version: '12'
 
       - run: npm ci
 
       - run: npm run build
 
+  format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup node 12
+        uses: actions/setup-node@v2.1.1
+        with:
+          node-version: '12'
+
+      - run: npm ci
+
       - run: npm run format-check
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup node 12
+        uses: actions/setup-node@v2.1.1
+        with:
+          node-version: '12'
+
+      - run: npm ci
+
       - run: npm test
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup node 12
+        uses: actions/setup-node@v2.1.1
+        with:
+          node-version: '12'
+
+      - run: npm ci
+
+      - run: npm run lint

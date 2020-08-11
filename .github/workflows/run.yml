@@ -2,14 +2,16 @@ name: Run Android build
 
 on:
   pull_request:
-    paths-ignore:
-      - '**.md'
+    paths:
+      - 'dist/**.js'
+      - '.github/*.json'
   push:
     branches:
       - main
       - releases/*
-    paths-ignore:
-      - '**.md'
+    paths:
+      - 'dist/**.js'
+      - '.github/*.json'
 
 jobs:
   build:
