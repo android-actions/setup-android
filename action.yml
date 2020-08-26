@@ -4,9 +4,7 @@ description: 'Setup the Android SDK Tools and add them to the path'
 
 runs:
   using: 'node12'
-  main: 'dist/main/index.js'
-  post: 'dist/post/index.js'
-  post-if: success()
+  main: 'dist/index.js'
 
 branding:
   icon: 'list'

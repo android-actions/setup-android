@@ -5,10 +5,10 @@
   "description": "setup android action",
   "main": "lib/main.js",
   "scripts": {
-    "build": "ncc build src/main.ts --out dist/main --minify && ncc build src/post.ts --out dist/post --minify",
+    "build": "ncc build src/main.ts --out dist/ --minify",
     "format": "prettier --write **/*.ts",
     "format-check": "prettier --check **/*.ts",
-    "lint": "eslint src/**/*.ts",
+    "lint": "eslint src/*.ts",
     "test": "jest",
     "all": "npm run format && npm run lint && npm run build && npm test"
   },
@@ -27,9 +27,7 @@
   "dependencies": {
     "@actions/cache": "^1.0.2",
     "@actions/core": "^1.2.0",
-    "@actions/tool-cache": "^1.6.0",
-    "axios": "^0.19.2",
-    "xml-js": "^1.6.11"
+    "@actions/tool-cache": "^1.6.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.10",
