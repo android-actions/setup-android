@@ -1,0 +1,72 @@
+{
+  "problemMatcher": [
+    {
+      "owner": "android-lint-file",
+      "pattern": [
+        {
+          "regexp": "^(.+):\\s+(Warning|Error):\\s+(.+)\\s+\\[(.+)\\]$",
+          "file": 1,
+          "severity": 2,
+          "message": 3,
+          "code": 4,
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "owner": "android-lint-line",
+      "pattern": [
+        {
+          "regexp": "^(.+):(\\d+):\\s+(Warning|Error):\\s+(.+)\\s+\\[(.+)\\]$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4,
+          "code": 5
+        }
+      ]
+    },
+    {
+      "owner": "gradle",
+      "pattern": [
+        {
+          "regexp": "^(error|quiet|warning|lifecycle|info|debug)\\s+(\\S+)\\s+(.+)$",
+          "severity": 1,
+          "code": 2,
+          "message": 3
+        },
+        {
+          "regexp": "^([^\\s]+):([\\d]+)$",
+          "file": 1,
+          "line": 2
+        }
+      ]
+    },
+    {
+      "owner": "kotlin-error",
+      "pattern": [
+        {
+          "regexp": "^e:\\s+(\\S+):\\s+\\((\\d+),\\s+(\\d+)\\):\\s+(.+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4
+        }
+      ],
+      "severity": "error"
+    },
+    {
+      "owner": "kotlin-warning",
+      "pattern": [
+        {
+          "regexp": "^w:\\s+(\\S+):\\s+\\((\\d+),\\s+(\\d+)\\):\\s+(.+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4
+        }
+      ],
+      "severity": "warning"
+    }
+  ]
+}
