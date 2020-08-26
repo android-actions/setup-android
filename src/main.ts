@@ -21,7 +21,7 @@ async function install(): Promise<string> {
   const licenseDir = path.join(ANDROID_SDK_ROOT, 'licenses')
 
   // If the licences exist, the rest does too
-  if (fs.existsSync(licenseDir) && fs.existsSync(ANDROID_REPOSITORIES_CFG)) {
+  if (fs.existsSync(licenseDir)) {
     core.debug(`Skipping install, licenseDir found: ${licenseDir}`)
     return ANDROID_SDK_ROOT
   }
