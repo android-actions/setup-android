@@ -22,7 +22,7 @@ steps:
     java-version: 1.8
 
 - name: Setup Android SDK
-  uses: android-actions/setup-android@v1
+  uses: android-actions/setup-android@v2
 
 - name: Build SampleApplication
   run: ./gradlew --no-daemon build
