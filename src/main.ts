@@ -5,7 +5,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
 
-const COMMANDLINE_TOOLS_VERSION = '6609375'
+const COMMANDLINE_TOOLS_VERSION = '6858069'
 const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
 const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
 const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
