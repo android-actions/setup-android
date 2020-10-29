@@ -6,6 +6,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 
 const COMMANDLINE_TOOLS_VERSION = '6858069'
+
 const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
 const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
 const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
@@ -66,7 +67,7 @@ async function install(): Promise<string> {
 
 async function run(): Promise<void> {
   const ANDROID_SDK_ROOT = await install()
-
+  core.setOutput('ANDROID_COMMANDLINE_TOOLS_VERSION', COMMANDLINE_TOOLS_VERSION)
   core.exportVariable('ANDROID_HOME', ANDROID_SDK_ROOT)
   core.exportVariable('ANDROID_SDK_ROOT', ANDROID_SDK_ROOT)
 
