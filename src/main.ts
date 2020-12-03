@@ -58,7 +58,7 @@ async function install(): Promise<string> {
 
   await exec.exec(
     sdkManager,
-    ['--include_obsolete', `--sdk_root=${ANDROID_SDK_ROOT}`, 'cmdline-tools'],
+    ['--include_obsolete', `--sdk_root=${ANDROID_SDK_ROOT}`, 'tools'],
     {input: acceptBuffer}
   )
 
