@@ -45,7 +45,12 @@ async function install(): Promise<string> {
   } else if (process.platform === 'win32') {
     const cmdlineToolsZip = await tc.downloadTool(COMMANDLINE_TOOLS_WIN_URL)
     const cmdlineTools = await tc.extractZip(cmdlineToolsZip)
-    sdkManager = path.join(cmdlineTools, 'cmdline-tools', 'bin', 'sdkmanager.bat')
+    sdkManager = path.join(
+      cmdlineTools,
+      'cmdline-tools',
+      'bin',
+      'sdkmanager.bat'
+    )
   } else {
     core.error(`Unsupported platform: ${process.platform}`)
   }
