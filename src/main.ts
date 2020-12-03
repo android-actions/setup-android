@@ -41,11 +41,11 @@ async function install(): Promise<string> {
   } else if (process.platform === 'darwin') {
     const cmdlineToolsZip = await tc.downloadTool(COMMANDLINE_TOOLS_MAC_URL)
     const cmdlineTools = await tc.extractZip(cmdlineToolsZip)
-    sdkManager = path.join(cmdlineTools, 'tools', 'bin', 'sdkmanager')
+    sdkManager = path.join(cmdlineTools, 'cmdline-tools', 'bin', 'sdkmanager')
   } else if (process.platform === 'win32') {
     const cmdlineToolsZip = await tc.downloadTool(COMMANDLINE_TOOLS_WIN_URL)
     const cmdlineTools = await tc.extractZip(cmdlineToolsZip)
-    sdkManager = path.join(cmdlineTools, 'tools', 'bin', 'sdkmanager.bat')
+    sdkManager = path.join(cmdlineTools, 'cmdline-tools', 'bin', 'sdkmanager.bat')
   } else {
     core.error(`Unsupported platform: ${process.platform}`)
   }
@@ -58,7 +58,7 @@ async function install(): Promise<string> {
 
   await exec.exec(
     sdkManager,
-    ['--include_obsolete', `--sdk_root=${ANDROID_SDK_ROOT}`, 'tools'],
+    ['--include_obsolete', `--sdk_root=${ANDROID_SDK_ROOT}`, 'cmdline-tools'],
     {input: acceptBuffer}
   )
 
@@ -71,7 +71,7 @@ async function run(): Promise<void> {
   core.exportVariable('ANDROID_HOME', ANDROID_SDK_ROOT)
   core.exportVariable('ANDROID_SDK_ROOT', ANDROID_SDK_ROOT)
 
-  core.addPath(path.join(ANDROID_SDK_ROOT, 'tools', 'bin'))
+  core.addPath(path.join(ANDROID_SDK_ROOT, 'cmdline-tools', 'bin'))
   core.addPath(path.join(ANDROID_SDK_ROOT, 'platform-tools'))
 
   core.debug('add matchers')
