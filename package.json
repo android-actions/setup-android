@@ -27,7 +27,8 @@
   "dependencies": {
     "@actions/cache": "^1.0.5",
     "@actions/core": "^1.2.6",
-    "@actions/tool-cache": "^1.6.1"
+    "@actions/tool-cache": "^1.6.1",
+    "fs-extra": "^9.1.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.19",
