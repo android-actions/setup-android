@@ -16,8 +16,7 @@ const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/comm
 const HOME = os.homedir()
 const ANDROID_HOME_DIR = path.join(HOME, '.android')
 const ANDROID_HOME_SDK_DIR = path.join(ANDROID_HOME_DIR, 'sdk')
-const ANDROID_SDK_ROOT = process.env['ANDROID_SDK_ROOT'] || ANDROID_HOME_SDK_DIR
-const ANDROID_REPOSITORIES_CFG = path.join(ANDROID_SDK_ROOT, 'repositories.cfg')
+let ANDROID_SDK_ROOT = process.env['ANDROID_SDK_ROOT'] || ANDROID_HOME_SDK_DIR
 
 function getSdkManagerPath(cmdToolsVersion: string): string {
   return path.join(
@@ -89,8 +88,10 @@ async function callSdkManager(sdkManager: string, arg: string): Promise<void> {
 async function installSdkManager(): Promise<string> {
   fs.mkdirSync(ANDROID_SDK_ROOT, {recursive: true})
 
-  // touch ~/.android/repositories.cfg
-  fs.closeSync(fs.openSync(ANDROID_REPOSITORIES_CFG, 'w'))
+  // touch $ANDROID_SDK_ROOT/repositories.cfg
+  fs.closeSync(
+    fs.openSync(path.join(ANDROID_SDK_ROOT, 'repositories.cfg'), 'w')
+  )
 
   const sdkManager = findPreinstalledSdkManager()
   if (!sdkManager.isFound) {
@@ -139,6 +140,24 @@ async function installSdkManager(): Promise<string> {
 }
 
 async function run(): Promise<void> {
+  if ('win16' === process.env['ImageOS']) {
+    if (-1 !== ANDROID_SDK_ROOT.indexOf(' ')) {
+      // On Windows2016, Android SDK is installed to Program Files,
+      // and it doesn't really work..
+      // C:\windows\system32\cmd.exe /D /S /C ""C:\Program Files (x86)\Android\android-sdk\cmdline-tools\3.0\bin\sdkmanager.bat" --licenses"
+      // Error: Could not find or load main class Files
+
+      const newSDKLocation = ANDROID_SDK_ROOT.replace(/\s/gi, '-')
+      core.debug(`moving ${ANDROID_SDK_ROOT} to ${newSDKLocation}`)
+      fs.mkdirSync(path.dirname(newSDKLocation), {recursive: true})
+
+      // intentionally using fs.renameSync,
+      // because it doesn't move across drives
+      fs.renameSync(ANDROID_SDK_ROOT, newSDKLocation)
+      ANDROID_SDK_ROOT = newSDKLocation
+    }
+  }
+
   const sdkManager = await installSdkManager()
   core.debug(`sdkmanager installed to: ${sdkManager}`)
   await callSdkManager(sdkManager, '--licenses')
