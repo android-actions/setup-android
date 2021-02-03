@@ -3,6 +3,7 @@ import * as tc from '@actions/tool-cache'
 import * as exec from '@actions/exec'
 import * as path from 'path'
 import * as fs from 'fs'
+import * as fse from 'fs-extra'
 import * as os from 'os'
 
 const CMDLINE_TOOLS_VERSION = '3.0'
@@ -114,8 +115,11 @@ async function installSdkManager(): Promise<string> {
       'cmdline-tools',
       CMDLINE_TOOLS_VERSION
     )
-    fs.mkdirSync(path.dirname(desiredLocation))
-    fs.renameSync(
+
+    fs.mkdirSync(path.dirname(desiredLocation), {recursive: true})
+    // @TODO: use io.mv instead of fs-extra once following issue is resolved:
+    // https://github.com/actions/toolkit/issues/706
+    fse.moveSync(
       path.join(cmdlineToolsExtractedLocation, 'cmdline-tools'),
       desiredLocation
     )
