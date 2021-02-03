@@ -19,16 +19,13 @@ const ANDROID_SDK_ROOT = process.env['ANDROID_SDK_ROOT'] || ANDROID_HOME_SDK_DIR
 const ANDROID_REPOSITORIES_CFG = path.join(ANDROID_SDK_ROOT, 'repositories.cfg')
 
 function getSdkManagerPath(cmdToolsVersion: string): string {
-  const toolsBinDir = path.join(
+  return path.join(
     ANDROID_SDK_ROOT,
     'cmdline-tools',
     cmdToolsVersion,
-    'bin'
+    'bin',
+    'sdkmanager'
   )
-  if ('win32' === process.platform) {
-    return path.join(toolsBinDir, 'sdkmanager.bat')
-  }
-  return path.join(toolsBinDir, 'sdkmanager')
 }
 
 function findPreinstalledSdkManager(): {
