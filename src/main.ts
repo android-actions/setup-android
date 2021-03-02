@@ -117,12 +117,14 @@ async function installSdkManager(): Promise<string> {
       CMDLINE_TOOLS_VERSION
     )
 
+    // Create parent directory
     fs.mkdirSync(path.dirname(desiredLocation), {recursive: true})
-    // @TODO: use io.mv instead of fs-extra once following issue is resolved:
-    // https://github.com/actions/toolkit/issues/706
 
+    // Make sure we don't have leftover target directory (happens sometimes...)
     if (fs.existsSync(desiredLocation)) fse.removeSync(desiredLocation)
 
+    // @TODO: use io.mv instead of fs-extra.moveSync once following issue is resolved:
+    // https://github.com/actions/toolkit/issues/706
     fse.moveSync(
       path.join(cmdlineToolsExtractedLocation, 'cmdline-tools'),
       desiredLocation
