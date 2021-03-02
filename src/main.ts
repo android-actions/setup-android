@@ -121,12 +121,12 @@ async function installSdkManager(): Promise<string> {
     // @TODO: use io.mv instead of fs-extra once following issue is resolved:
     // https://github.com/actions/toolkit/issues/706
 
-    if (!fs.existsSync(desiredLocation)) {
-      fse.moveSync(
+    if (fs.existsSync(desiredLocation)) fse.removeSync(desiredLocation)
+
+    fse.moveSync(
           path.join(cmdlineToolsExtractedLocation, 'cmdline-tools'),
           desiredLocation
       )
-    }
     fse.removeSync(cmdlineToolsExtractedLocation)
 
     sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION)
