@@ -124,9 +124,9 @@ async function installSdkManager(): Promise<string> {
     if (fs.existsSync(desiredLocation)) fse.removeSync(desiredLocation)
 
     fse.moveSync(
-          path.join(cmdlineToolsExtractedLocation, 'cmdline-tools'),
-          desiredLocation
-      )
+        path.join(cmdlineToolsExtractedLocation, 'cmdline-tools'),
+        desiredLocation
+    )
     fse.removeSync(cmdlineToolsExtractedLocation)
 
     sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION)
