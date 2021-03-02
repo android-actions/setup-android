@@ -120,6 +120,9 @@ async function installSdkManager(): Promise<string> {
     fs.mkdirSync(path.dirname(desiredLocation), {recursive: true})
     // @TODO: use io.mv instead of fs-extra once following issue is resolved:
     // https://github.com/actions/toolkit/issues/706
+
+    if (fs.existsSync(desiredLocation)) fse.removeSync(desiredLocation)
+
     fse.moveSync(
       path.join(cmdlineToolsExtractedLocation, 'cmdline-tools'),
       desiredLocation
