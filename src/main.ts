@@ -154,7 +154,7 @@ async function run(): Promise<void> {
 
       // intentionally using fs.renameSync,
       // because it doesn't move across drives
-      if (ANDROID_SDK_ROOT !== newSDKLocation) fs.renameSync(ANDROID_SDK_ROOT, newSDKLocation)
+      fs.renameSync(ANDROID_SDK_ROOT, newSDKLocation)
       ANDROID_SDK_ROOT = newSDKLocation
     }
   }
