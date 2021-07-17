@@ -1,4 +1,3 @@
-module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
@@ -3252,18 +3251,6 @@ function _unique(values) {
 
 /***/ }),
 
-/***/ 5995:
-/***/ ((module) => {
-
-module.exports = r => {
-  const n = process.versions.node.split('.').map(x => parseInt(x, 10))
-  r = r.split('.').map(x => parseInt(x, 10))
-  return n[0] > r[0] || (n[0] === r[0] && (n[1] > r[1] || (n[1] === r[1] && n[2] >= r[2])))
-}
-
-
-/***/ }),
-
 /***/ 3338:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -3291,7 +3278,7 @@ function copySync (src, dest, opts) {
     see https://github.com/jprichardson/node-fs-extra/issues/269`)
   }
 
-  const { srcStat, destStat } = stat.checkPathsSync(src, dest, 'copy')
+  const { srcStat, destStat } = stat.checkPathsSync(src, dest, 'copy', opts)
   stat.checkParentPathsSync(src, srcStat, dest, 'copy')
   return handleFilterAndCopy(destStat, src, dest, opts)
 }
@@ -3300,7 +3287,7 @@ function handleFilterAndCopy (destStat, src, dest, opts) {
   if (opts.filter && !opts.filter(src, dest)) return
   const destParent = path.dirname(dest)
   if (!fs.existsSync(destParent)) mkdirsSync(destParent)
-  return startCopy(destStat, src, dest, opts)
+  return getStats(destStat, src, dest, opts)
 }
 
 function startCopy (destStat, src, dest, opts) {
@@ -3317,6 +3304,9 @@ function getStats (destStat, src, dest, opts) {
            srcStat.isCharacterDevice() ||
            srcStat.isBlockDevice()) return onFile(srcStat, destStat, src, dest, opts)
   else if (srcStat.isSymbolicLink()) return onLink(destStat, src, dest, opts)
+  else if (srcStat.isSocket()) throw new Error(`Cannot copy a socket file: ${src}`)
+  else if (srcStat.isFIFO()) throw new Error(`Cannot copy a FIFO pipe: ${src}`)
+  throw new Error(`Unknown file: ${src}`)
 }
 
 function onFile (srcStat, destStat, src, dest, opts) {
@@ -3369,9 +3359,6 @@ function setDestTimestamps (src, dest) {
 
 function onDir (srcStat, destStat, src, dest, opts) {
   if (!destStat) return mkDirAndCopy(srcStat.mode, src, dest, opts)
-  if (destStat && !destStat.isDirectory()) {
-    throw new Error(`Cannot overwrite non-directory '${dest}' with directory '${src}'.`)
-  }
   return copyDir(src, dest, opts)
 }
 
@@ -3388,7 +3375,7 @@ function copyDir (src, dest, opts) {
 function copyDirItem (item, src, dest, opts) {
   const srcItem = path.join(src, item)
   const destItem = path.join(dest, item)
-  const { destStat } = stat.checkPathsSync(srcItem, destItem, 'copy')
+  const { destStat } = stat.checkPathsSync(srcItem, destItem, 'copy', opts)
   return startCopy(destStat, srcItem, destItem, opts)
 }
 
@@ -3484,7 +3471,7 @@ function copy (src, dest, opts, cb) {
     see https://github.com/jprichardson/node-fs-extra/issues/269`)
   }
 
-  stat.checkPaths(src, dest, 'copy', (err, stats) => {
+  stat.checkPaths(src, dest, 'copy', opts, (err, stats) => {
     if (err) return cb(err)
     const { srcStat, destStat } = stats
     stat.checkParentPaths(src, srcStat, dest, 'copy', err => {
@@ -3499,10 +3486,10 @@ function checkParentDir (destStat, src, dest, opts, cb) {
   const destParent = path.dirname(dest)
   pathExists(destParent, (err, dirExists) => {
     if (err) return cb(err)
-    if (dirExists) return startCopy(destStat, src, dest, opts, cb)
+    if (dirExists) return getStats(destStat, src, dest, opts, cb)
     mkdirs(destParent, err => {
       if (err) return cb(err)
-      return startCopy(destStat, src, dest, opts, cb)
+      return getStats(destStat, src, dest, opts, cb)
     })
   })
 }
@@ -3529,6 +3516,9 @@ function getStats (destStat, src, dest, opts, cb) {
              srcStat.isCharacterDevice() ||
              srcStat.isBlockDevice()) return onFile(srcStat, destStat, src, dest, opts, cb)
     else if (srcStat.isSymbolicLink()) return onLink(destStat, src, dest, opts, cb)
+    else if (srcStat.isSocket()) return cb(new Error(`Cannot copy a socket file: ${src}`))
+    else if (srcStat.isFIFO()) return cb(new Error(`Cannot copy a FIFO pipe: ${src}`))
+    return cb(new Error(`Unknown file: ${src}`))
   })
 }
 
@@ -3600,9 +3590,6 @@ function setDestTimestamps (src, dest, cb) {
 
 function onDir (srcStat, destStat, src, dest, opts, cb) {
   if (!destStat) return mkDirAndCopy(srcStat.mode, src, dest, opts, cb)
-  if (destStat && !destStat.isDirectory()) {
-    return cb(new Error(`Cannot overwrite non-directory '${dest}' with directory '${src}'.`))
-  }
   return copyDir(src, dest, opts, cb)
 }
 
@@ -3632,7 +3619,7 @@ function copyDirItems (items, src, dest, opts, cb) {
 function copyDirItem (items, item, src, dest, opts, cb) {
   const srcItem = path.join(src, item)
   const destItem = path.join(dest, item)
-  stat.checkPaths(srcItem, destItem, 'copy', (err, stats) => {
+  stat.checkPaths(srcItem, destItem, 'copy', opts, (err, stats) => {
     if (err) return cb(err)
     const { destStat } = stats
     startCopy(destStat, srcItem, destItem, opts, err => {
@@ -3711,30 +3698,21 @@ module.exports = {
 "use strict";
 
 
-const u = __nccwpck_require__(9046).fromCallback
-const fs = __nccwpck_require__(7758)
+const u = __nccwpck_require__(9046).fromPromise
+const fs = __nccwpck_require__(1176)
 const path = __nccwpck_require__(5622)
 const mkdir = __nccwpck_require__(2915)
 const remove = __nccwpck_require__(7357)
 
-const emptyDir = u(function emptyDir (dir, callback) {
-  callback = callback || function () {}
-  fs.readdir(dir, (err, items) => {
-    if (err) return mkdir.mkdirs(dir, callback)
+const emptyDir = u(async function emptyDir (dir) {
+  let items
+  try {
+    items = await fs.readdir(dir)
+  } catch {
+    return mkdir.mkdirs(dir)
+  }
 
-    items = items.map(item => path.join(dir, item))
-
-    deleteItem()
-
-    function deleteItem () {
-      const item = items.pop()
-      if (!item) return callback()
-      remove.remove(item, err => {
-        if (err) return callback(err)
-        deleteItem()
-      })
-    }
-  })
+  return Promise.all(items.map(item => remove.remove(path.join(dir, item))))
 })
 
 function emptyDirSync (dir) {
@@ -3880,6 +3858,7 @@ const path = __nccwpck_require__(5622)
 const fs = __nccwpck_require__(7758)
 const mkdir = __nccwpck_require__(2915)
 const pathExists = __nccwpck_require__(3835).pathExists
+const { areIdentical } = __nccwpck_require__(3901)
 
 function createLink (srcpath, dstpath, callback) {
   function makeLink (srcpath, dstpath) {
@@ -3889,14 +3868,13 @@ function createLink (srcpath, dstpath, callback) {
     })
   }
 
-  pathExists(dstpath, (err, destinationExists) => {
-    if (err) return callback(err)
-    if (destinationExists) return callback(null)
-    fs.lstat(srcpath, (err) => {
+  fs.lstat(dstpath, (_, dstStat) => {
+    fs.lstat(srcpath, (err, srcStat) => {
       if (err) {
         err.message = err.message.replace('lstat', 'ensureLink')
         return callback(err)
       }
+      if (dstStat && areIdentical(srcStat, dstStat)) return callback(null)
 
       const dir = path.dirname(dstpath)
       pathExists(dir, (err, dirExists) => {
@@ -3912,11 +3890,14 @@ function createLink (srcpath, dstpath, callback) {
 }
 
 function createLinkSync (srcpath, dstpath) {
-  const destinationExists = fs.existsSync(dstpath)
-  if (destinationExists) return undefined
+  let dstStat
+  try {
+    dstStat = fs.lstatSync(dstpath)
+  } catch {}
 
   try {
-    fs.lstatSync(srcpath)
+    const srcStat = fs.lstatSync(srcpath)
+    if (dstStat && areIdentical(srcStat, dstStat)) return
   } catch (err) {
     err.message = err.message.replace('lstat', 'ensureLink')
     throw err
@@ -4092,7 +4073,7 @@ module.exports = {
 
 const u = __nccwpck_require__(9046).fromCallback
 const path = __nccwpck_require__(5622)
-const fs = __nccwpck_require__(7758)
+const fs = __nccwpck_require__(1176)
 const _mkdirs = __nccwpck_require__(2915)
 const mkdirs = _mkdirs.mkdirs
 const mkdirsSync = _mkdirs.mkdirsSync
@@ -4107,26 +4088,38 @@ const symlinkTypeSync = _symlinkType.symlinkTypeSync
 
 const pathExists = __nccwpck_require__(3835).pathExists
 
+const { areIdentical } = __nccwpck_require__(3901)
+
 function createSymlink (srcpath, dstpath, type, callback) {
   callback = (typeof type === 'function') ? type : callback
   type = (typeof type === 'function') ? false : type
 
-  pathExists(dstpath, (err, destinationExists) => {
+  fs.lstat(dstpath, (err, stats) => {
+    if (!err && stats.isSymbolicLink()) {
+      Promise.all([
+        fs.stat(srcpath),
+        fs.stat(dstpath)
+      ]).then(([srcStat, dstStat]) => {
+        if (areIdentical(srcStat, dstStat)) return callback(null)
+        _createSymlink(srcpath, dstpath, type, callback)
+      })
+    } else _createSymlink(srcpath, dstpath, type, callback)
+  })
+}
+
+function _createSymlink (srcpath, dstpath, type, callback) {
+  symlinkPaths(srcpath, dstpath, (err, relative) => {
     if (err) return callback(err)
-    if (destinationExists) return callback(null)
-    symlinkPaths(srcpath, dstpath, (err, relative) => {
+    srcpath = relative.toDst
+    symlinkType(relative.toCwd, type, (err, type) => {
       if (err) return callback(err)
-      srcpath = relative.toDst
-      symlinkType(relative.toCwd, type, (err, type) => {
+      const dir = path.dirname(dstpath)
+      pathExists(dir, (err, dirExists) => {
         if (err) return callback(err)
-        const dir = path.dirname(dstpath)
-        pathExists(dir, (err, dirExists) => {
+        if (dirExists) return fs.symlink(srcpath, dstpath, type, callback)
+        mkdirs(dir, err => {
           if (err) return callback(err)
-          if (dirExists) return fs.symlink(srcpath, dstpath, type, callback)
-          mkdirs(dir, err => {
-            if (err) return callback(err)
-            fs.symlink(srcpath, dstpath, type, callback)
-          })
+          fs.symlink(srcpath, dstpath, type, callback)
         })
       })
     })
@@ -4134,8 +4127,15 @@ function createSymlink (srcpath, dstpath, type, callback) {
 }
 
 function createSymlinkSync (srcpath, dstpath, type) {
-  const destinationExists = fs.existsSync(dstpath)
-  if (destinationExists) return undefined
+  let stats
+  try {
+    stats = fs.lstatSync(dstpath)
+  } catch {}
+  if (stats && stats.isSymbolicLink()) {
+    const srcStat = fs.statSync(srcpath)
+    const dstStat = fs.statSync(dstpath)
+    if (areIdentical(srcStat, dstStat)) return
+  }
 
   const relative = symlinkPathsSync(srcpath, dstpath)
   srcpath = relative.toDst
@@ -4208,20 +4208,14 @@ const api = [
   return typeof fs[key] === 'function'
 })
 
-// Export all keys:
-Object.keys(fs).forEach(key => {
-  if (key === 'promises') {
-    // fs.promises is a getter property that triggers ExperimentalWarning
-    // Don't re-export it here, the getter is defined in "lib/index.js"
-    return
-  }
-  exports[key] = fs[key]
-})
+// Export cloned fs:
+Object.assign(exports, fs)
 
 // Universalify async methods:
 api.forEach(method => {
   exports[method] = u(fs[method])
 })
+exports.realpath.native = u(fs.realpath.native)
 
 // We differ from mz/fs in that we still ship the old, broken, fs.exists()
 // since we are a drop-in replacement for the native module
@@ -4285,11 +4279,6 @@ if (typeof fs.writev === 'function') {
   }
 }
 
-// fs.realpath.native only available in Node v9.2+
-if (typeof fs.realpath.native === 'function') {
-  exports.realpath.native = u(fs.realpath.native)
-}
-
 
 /***/ }),
 
@@ -4314,15 +4303,6 @@ module.exports = {
   ...__nccwpck_require__(6570),
   ...__nccwpck_require__(3835),
   ...__nccwpck_require__(7357)
-}
-
-// Export fs.promises as a getter property so that we don't trigger
-// ExperimentalWarning before fs.promises is actually accessed.
-const fs = __nccwpck_require__(5747)
-if (Object.getOwnPropertyDescriptor(fs, 'promises')) {
-  Object.defineProperty(module.exports, "promises", ({
-    get () { return fs.promises }
-  }))
 }
 
 
@@ -4437,21 +4417,52 @@ module.exports = {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
+
+const fs = __nccwpck_require__(1176)
+const { checkPath } = __nccwpck_require__(9907)
+
+const getMode = options => {
+  const defaults = { mode: 0o777 }
+  if (typeof options === 'number') return options
+  return ({ ...defaults, ...options }).mode
+}
+
+module.exports.makeDir = async (dir, options) => {
+  checkPath(dir)
+
+  return fs.mkdir(dir, {
+    mode: getMode(options),
+    recursive: true
+  })
+}
+
+module.exports.makeDirSync = (dir, options) => {
+  checkPath(dir)
+
+  return fs.mkdirSync(dir, {
+    mode: getMode(options),
+    recursive: true
+  })
+}
+
+
+/***/ }),
+
+/***/ 9907:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
 // Adapted from https://github.com/sindresorhus/make-dir
 // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-const fs = __nccwpck_require__(1176)
 const path = __nccwpck_require__(5622)
-const atLeastNode = __nccwpck_require__(5995)
-
-const useNativeRecursiveOption = atLeastNode('10.12.0')
 
 // https://github.com/nodejs/node/issues/8987
 // https://github.com/libuv/libuv/pull/1088
-const checkPath = pth => {
+module.exports.checkPath = function checkPath (pth) {
   if (process.platform === 'win32') {
     const pathHasInvalidWinCharacters = /[<>:"|?*]/.test(pth.replace(path.parse(pth).root, ''))
 
@@ -4461,122 +4472,6 @@ const checkPath = pth => {
       throw error
     }
   }
-}
-
-const processOptions = options => {
-  const defaults = { mode: 0o777 }
-  if (typeof options === 'number') options = { mode: options }
-  return { ...defaults, ...options }
-}
-
-const permissionError = pth => {
-  // This replicates the exception of `fs.mkdir` with native the
-  // `recusive` option when run on an invalid drive under Windows.
-  const error = new Error(`operation not permitted, mkdir '${pth}'`)
-  error.code = 'EPERM'
-  error.errno = -4048
-  error.path = pth
-  error.syscall = 'mkdir'
-  return error
-}
-
-module.exports.makeDir = async (input, options) => {
-  checkPath(input)
-  options = processOptions(options)
-
-  if (useNativeRecursiveOption) {
-    const pth = path.resolve(input)
-
-    return fs.mkdir(pth, {
-      mode: options.mode,
-      recursive: true
-    })
-  }
-
-  const make = async pth => {
-    try {
-      await fs.mkdir(pth, options.mode)
-    } catch (error) {
-      if (error.code === 'EPERM') {
-        throw error
-      }
-
-      if (error.code === 'ENOENT') {
-        if (path.dirname(pth) === pth) {
-          throw permissionError(pth)
-        }
-
-        if (error.message.includes('null bytes')) {
-          throw error
-        }
-
-        await make(path.dirname(pth))
-        return make(pth)
-      }
-
-      try {
-        const stats = await fs.stat(pth)
-        if (!stats.isDirectory()) {
-          // This error is never exposed to the user
-          // it is caught below, and the original error is thrown
-          throw new Error('The path is not a directory')
-        }
-      } catch {
-        throw error
-      }
-    }
-  }
-
-  return make(path.resolve(input))
-}
-
-module.exports.makeDirSync = (input, options) => {
-  checkPath(input)
-  options = processOptions(options)
-
-  if (useNativeRecursiveOption) {
-    const pth = path.resolve(input)
-
-    return fs.mkdirSync(pth, {
-      mode: options.mode,
-      recursive: true
-    })
-  }
-
-  const make = pth => {
-    try {
-      fs.mkdirSync(pth, options.mode)
-    } catch (error) {
-      if (error.code === 'EPERM') {
-        throw error
-      }
-
-      if (error.code === 'ENOENT') {
-        if (path.dirname(pth) === pth) {
-          throw permissionError(pth)
-        }
-
-        if (error.message.includes('null bytes')) {
-          throw error
-        }
-
-        make(path.dirname(pth))
-        return make(pth)
-      }
-
-      try {
-        if (!fs.statSync(pth).isDirectory()) {
-          // This error is never exposed to the user
-          // it is caught below, and the original error is thrown
-          throw new Error('The path is not a directory')
-        }
-      } catch {
-        throw error
-      }
-    }
-  }
-
-  return make(path.resolve(input))
 }
 
 
@@ -4612,13 +4507,20 @@ function moveSync (src, dest, opts) {
   opts = opts || {}
   const overwrite = opts.overwrite || opts.clobber || false
 
-  const { srcStat } = stat.checkPathsSync(src, dest, 'move')
+  const { srcStat, isChangingCase = false } = stat.checkPathsSync(src, dest, 'move', opts)
   stat.checkParentPathsSync(src, srcStat, dest, 'move')
-  mkdirpSync(path.dirname(dest))
-  return doRename(src, dest, overwrite)
+  if (!isParentRoot(dest)) mkdirpSync(path.dirname(dest))
+  return doRename(src, dest, overwrite, isChangingCase)
 }
 
-function doRename (src, dest, overwrite) {
+function isParentRoot (dest) {
+  const parent = path.dirname(dest)
+  const parsedPath = path.parse(parent)
+  return parsedPath.root === parent
+}
+
+function doRename (src, dest, overwrite, isChangingCase) {
+  if (isChangingCase) return rename(src, dest, overwrite)
   if (overwrite) {
     removeSync(dest)
     return rename(src, dest, overwrite)
@@ -4686,20 +4588,28 @@ function move (src, dest, opts, cb) {
 
   const overwrite = opts.overwrite || opts.clobber || false
 
-  stat.checkPaths(src, dest, 'move', (err, stats) => {
+  stat.checkPaths(src, dest, 'move', opts, (err, stats) => {
     if (err) return cb(err)
-    const { srcStat } = stats
+    const { srcStat, isChangingCase = false } = stats
     stat.checkParentPaths(src, srcStat, dest, 'move', err => {
       if (err) return cb(err)
+      if (isParentRoot(dest)) return doRename(src, dest, overwrite, isChangingCase, cb)
       mkdirp(path.dirname(dest), err => {
         if (err) return cb(err)
-        return doRename(src, dest, overwrite, cb)
+        return doRename(src, dest, overwrite, isChangingCase, cb)
       })
     })
   })
 }
 
-function doRename (src, dest, overwrite, cb) {
+function isParentRoot (dest) {
+  const parent = path.dirname(dest)
+  const parsedPath = path.parse(parent)
+  return parsedPath.root === parent
+}
+
+function doRename (src, dest, overwrite, isChangingCase, cb) {
+  if (isChangingCase) return rename(src, dest, overwrite, cb)
   if (overwrite) {
     return remove(dest, err => {
       if (err) return cb(err)
@@ -4811,12 +4721,25 @@ module.exports = {
 "use strict";
 
 
+const fs = __nccwpck_require__(7758)
 const u = __nccwpck_require__(9046).fromCallback
 const rimraf = __nccwpck_require__(8761)
 
+function remove (path, callback) {
+  // Node 14.14.0+
+  if (fs.rm) return fs.rm(path, { recursive: true, force: true }, callback)
+  rimraf(path, callback)
+}
+
+function removeSync (path) {
+  // Node 14.14.0+
+  if (fs.rmSync) return fs.rmSync(path, { recursive: true, force: true })
+  rimraf.sync(path)
+}
+
 module.exports = {
-  remove: u(rimraf),
-  removeSync: rimraf.sync
+  remove: u(remove),
+  removeSync
 }
 
 
@@ -5141,27 +5064,28 @@ rimraf.sync = rimrafSync
 const fs = __nccwpck_require__(1176)
 const path = __nccwpck_require__(5622)
 const util = __nccwpck_require__(1669)
-const atLeastNode = __nccwpck_require__(5995)
 
-const nodeSupportsBigInt = atLeastNode('10.5.0')
-const stat = (file) => nodeSupportsBigInt ? fs.stat(file, { bigint: true }) : fs.stat(file)
-const statSync = (file) => nodeSupportsBigInt ? fs.statSync(file, { bigint: true }) : fs.statSync(file)
-
-function getStats (src, dest) {
+function getStats (src, dest, opts) {
+  const statFunc = opts.dereference
+    ? (file) => fs.stat(file, { bigint: true })
+    : (file) => fs.lstat(file, { bigint: true })
   return Promise.all([
-    stat(src),
-    stat(dest).catch(err => {
+    statFunc(src),
+    statFunc(dest).catch(err => {
       if (err.code === 'ENOENT') return null
       throw err
     })
   ]).then(([srcStat, destStat]) => ({ srcStat, destStat }))
 }
 
-function getStatsSync (src, dest) {
+function getStatsSync (src, dest, opts) {
   let destStat
-  const srcStat = statSync(src)
+  const statFunc = opts.dereference
+    ? (file) => fs.statSync(file, { bigint: true })
+    : (file) => fs.lstatSync(file, { bigint: true })
+  const srcStat = statFunc(src)
   try {
-    destStat = statSync(dest)
+    destStat = statFunc(dest)
   } catch (err) {
     if (err.code === 'ENOENT') return { srcStat, destStat: null }
     throw err
@@ -5169,13 +5093,30 @@ function getStatsSync (src, dest) {
   return { srcStat, destStat }
 }
 
-function checkPaths (src, dest, funcName, cb) {
-  util.callbackify(getStats)(src, dest, (err, stats) => {
+function checkPaths (src, dest, funcName, opts, cb) {
+  util.callbackify(getStats)(src, dest, opts, (err, stats) => {
     if (err) return cb(err)
     const { srcStat, destStat } = stats
-    if (destStat && areIdentical(srcStat, destStat)) {
-      return cb(new Error('Source and destination must not be the same.'))
+
+    if (destStat) {
+      if (areIdentical(srcStat, destStat)) {
+        const srcBaseName = path.basename(src)
+        const destBaseName = path.basename(dest)
+        if (funcName === 'move' &&
+          srcBaseName !== destBaseName &&
+          srcBaseName.toLowerCase() === destBaseName.toLowerCase()) {
+          return cb(null, { srcStat, destStat, isChangingCase: true })
+        }
+        return cb(new Error('Source and destination must not be the same.'))
+      }
+      if (srcStat.isDirectory() && !destStat.isDirectory()) {
+        return cb(new Error(`Cannot overwrite non-directory '${dest}' with directory '${src}'.`))
+      }
+      if (!srcStat.isDirectory() && destStat.isDirectory()) {
+        return cb(new Error(`Cannot overwrite directory '${dest}' with non-directory '${src}'.`))
+      }
     }
+
     if (srcStat.isDirectory() && isSrcSubdir(src, dest)) {
       return cb(new Error(errMsg(src, dest, funcName)))
     }
@@ -5183,11 +5124,28 @@ function checkPaths (src, dest, funcName, cb) {
   })
 }
 
-function checkPathsSync (src, dest, funcName) {
-  const { srcStat, destStat } = getStatsSync(src, dest)
-  if (destStat && areIdentical(srcStat, destStat)) {
-    throw new Error('Source and destination must not be the same.')
+function checkPathsSync (src, dest, funcName, opts) {
+  const { srcStat, destStat } = getStatsSync(src, dest, opts)
+
+  if (destStat) {
+    if (areIdentical(srcStat, destStat)) {
+      const srcBaseName = path.basename(src)
+      const destBaseName = path.basename(dest)
+      if (funcName === 'move' &&
+        srcBaseName !== destBaseName &&
+        srcBaseName.toLowerCase() === destBaseName.toLowerCase()) {
+        return { srcStat, destStat, isChangingCase: true }
+      }
+      throw new Error('Source and destination must not be the same.')
+    }
+    if (srcStat.isDirectory() && !destStat.isDirectory()) {
+      throw new Error(`Cannot overwrite non-directory '${dest}' with directory '${src}'.`)
+    }
+    if (!srcStat.isDirectory() && destStat.isDirectory()) {
+      throw new Error(`Cannot overwrite directory '${dest}' with non-directory '${src}'.`)
+    }
   }
+
   if (srcStat.isDirectory() && isSrcSubdir(src, dest)) {
     throw new Error(errMsg(src, dest, funcName))
   }
@@ -5202,7 +5160,7 @@ function checkParentPaths (src, srcStat, dest, funcName, cb) {
   const srcParent = path.resolve(path.dirname(src))
   const destParent = path.resolve(path.dirname(dest))
   if (destParent === srcParent || destParent === path.parse(destParent).root) return cb()
-  const callback = (err, destStat) => {
+  fs.stat(destParent, { bigint: true }, (err, destStat) => {
     if (err) {
       if (err.code === 'ENOENT') return cb()
       return cb(err)
@@ -5211,9 +5169,7 @@ function checkParentPaths (src, srcStat, dest, funcName, cb) {
       return cb(new Error(errMsg(src, dest, funcName)))
     }
     return checkParentPaths(src, srcStat, destParent, funcName, cb)
-  }
-  if (nodeSupportsBigInt) fs.stat(destParent, { bigint: true }, callback)
-  else fs.stat(destParent, callback)
+  })
 }
 
 function checkParentPathsSync (src, srcStat, dest, funcName) {
@@ -5222,7 +5178,7 @@ function checkParentPathsSync (src, srcStat, dest, funcName) {
   if (destParent === srcParent || destParent === path.parse(destParent).root) return
   let destStat
   try {
-    destStat = statSync(destParent)
+    destStat = fs.statSync(destParent, { bigint: true })
   } catch (err) {
     if (err.code === 'ENOENT') return
     throw err
@@ -5234,26 +5190,7 @@ function checkParentPathsSync (src, srcStat, dest, funcName) {
 }
 
 function areIdentical (srcStat, destStat) {
-  if (destStat.ino && destStat.dev && destStat.ino === srcStat.ino && destStat.dev === srcStat.dev) {
-    if (nodeSupportsBigInt || destStat.ino < Number.MAX_SAFE_INTEGER) {
-      // definitive answer
-      return true
-    }
-    // Use additional heuristics if we can't use 'bigint'.
-    // Different 'ino' could be represented the same if they are >= Number.MAX_SAFE_INTEGER
-    // See issue 657
-    if (destStat.size === srcStat.size &&
-        destStat.mode === srcStat.mode &&
-        destStat.nlink === srcStat.nlink &&
-        destStat.atimeMs === srcStat.atimeMs &&
-        destStat.mtimeMs === srcStat.mtimeMs &&
-        destStat.ctimeMs === srcStat.ctimeMs &&
-        destStat.birthtimeMs === srcStat.birthtimeMs) {
-      // heuristic answer
-      return true
-    }
-  }
-  return false
+  return destStat.ino && destStat.dev && destStat.ino === srcStat.ino && destStat.dev === srcStat.dev
 }
 
 // return true if dest is a subdir of src, otherwise false.
@@ -5273,7 +5210,8 @@ module.exports = {
   checkPathsSync,
   checkParentPaths,
   checkParentPathsSync,
-  isSrcSubdir
+  isSrcSubdir,
+  areIdentical
 }
 
 
@@ -8317,189 +8255,11 @@ module.exports = v4;
 
 /***/ }),
 
-/***/ 399:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core = __importStar(__nccwpck_require__(2186));
-const tc = __importStar(__nccwpck_require__(7784));
-const exec = __importStar(__nccwpck_require__(1514));
-const path = __importStar(__nccwpck_require__(5622));
-const fs = __importStar(__nccwpck_require__(5747));
-const fse = __importStar(__nccwpck_require__(5630));
-const os = __importStar(__nccwpck_require__(2087));
-const CMDLINE_TOOLS_VERSION = '3.0';
-const COMMANDLINE_TOOLS_VERSION = '6858069';
-const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
-const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
-const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
-const HOME = os.homedir();
-const ANDROID_HOME_DIR = path.join(HOME, '.android');
-const ANDROID_HOME_SDK_DIR = path.join(ANDROID_HOME_DIR, 'sdk');
-let ANDROID_SDK_ROOT = process.env['ANDROID_SDK_ROOT'] || ANDROID_HOME_SDK_DIR;
-function getSdkManagerPath(cmdToolsVersion) {
-    return path.join(ANDROID_SDK_ROOT, 'cmdline-tools', cmdToolsVersion, 'bin', 'sdkmanager');
-}
-function findPreinstalledSdkManager() {
-    const result = { isFound: false, isCorrectVersion: false, exePath: '' };
-    // First try to find the version defined in CMDLINE_TOOLS_VERSION
-    result.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
-    result.isFound = fs.existsSync(result.exePath);
-    if (result.isFound) {
-        result.isCorrectVersion = true;
-        return result;
-    }
-    // cmdline-tools could have a 'latest' version, but if it was installed 2 years ago
-    // it may not be 'latest' as of today
-    result.exePath = getSdkManagerPath('latest');
-    result.isFound = fs.existsSync(result.exePath);
-    if (result.isFound) {
-        return result;
-    }
-    result.exePath = '';
-    // Find whatever version is available in ANDROID_SDK_ROOT
-    const cmdlineToolsDir = path.join(ANDROID_SDK_ROOT, 'cmdline-tools');
-    const foundVersions = fs.existsSync(cmdlineToolsDir)
-        ? fs.readdirSync(cmdlineToolsDir)
-        : [];
-    const foundVersionsFiltered = foundVersions.filter(obj => '.' !== obj && '..' !== obj);
-    // Sort by desc, to get 2.0 first, before 1.0
-    const foundVersionsSorted = foundVersionsFiltered.sort((a, b) => (a > b ? -1 : 1));
-    for (const version of foundVersionsSorted) {
-        result.exePath = getSdkManagerPath(version);
-        result.isFound = fs.existsSync(result.exePath);
-        if (result.isFound) {
-            return result;
-        }
-    }
-    result.exePath = '';
-    return result;
-}
-function callSdkManager(sdkManager, arg) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const acceptBuffer = Buffer.from(Array(10).fill('y').join('\n'), 'utf8');
-        yield exec.exec(sdkManager, [arg], {
-            input: acceptBuffer
-        });
-    });
-}
-function installSdkManager() {
-    return __awaiter(this, void 0, void 0, function* () {
-        fs.mkdirSync(ANDROID_SDK_ROOT, { recursive: true });
-        // touch $ANDROID_SDK_ROOT/repositories.cfg
-        fs.closeSync(fs.openSync(path.join(ANDROID_SDK_ROOT, 'repositories.cfg'), 'w'));
-        const sdkManager = findPreinstalledSdkManager();
-        if (!sdkManager.isFound) {
-            let cmdlineToolsURL;
-            if (process.platform === 'linux') {
-                cmdlineToolsURL = COMMANDLINE_TOOLS_LIN_URL;
-            }
-            else if (process.platform === 'darwin') {
-                cmdlineToolsURL = COMMANDLINE_TOOLS_MAC_URL;
-            }
-            else if (process.platform === 'win32') {
-                cmdlineToolsURL = COMMANDLINE_TOOLS_WIN_URL;
-            }
-            else {
-                core.error(`Unsupported platform: ${process.platform}`);
-                return '';
-            }
-            const cmdlineToolsZip = yield tc.downloadTool(cmdlineToolsURL);
-            const cmdlineToolsExtractedLocation = yield tc.extractZip(cmdlineToolsZip);
-            // Move cmdline-tools to where it would be if it was installed through sdkmanager
-            // Will allow calling sdkmanager without --sdk_root='..' argument
-            const desiredLocation = path.join(ANDROID_SDK_ROOT, 'cmdline-tools', CMDLINE_TOOLS_VERSION);
-            // Create parent directory
-            fs.mkdirSync(path.dirname(desiredLocation), { recursive: true });
-            // Make sure we don't have leftover target directory (happens sometimes...)
-            if (fs.existsSync(desiredLocation))
-                fse.removeSync(desiredLocation);
-            // @TODO: use io.mv instead of fs-extra.moveSync once following issue is resolved:
-            // https://github.com/actions/toolkit/issues/706
-            fse.moveSync(path.join(cmdlineToolsExtractedLocation, 'cmdline-tools'), desiredLocation);
-            fse.removeSync(cmdlineToolsExtractedLocation);
-            sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
-            sdkManager.isCorrectVersion = true;
-        }
-        if (!sdkManager.isCorrectVersion) {
-            yield callSdkManager(sdkManager.exePath, `cmdline-tools;${CMDLINE_TOOLS_VERSION}`);
-            sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
-        }
-        return sdkManager.exePath;
-    });
-}
-function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        if ('win16' === process.env['ImageOS']) {
-            if (-1 !== ANDROID_SDK_ROOT.indexOf(' ')) {
-                // On Windows2016, Android SDK is installed to Program Files,
-                // and it doesn't really work..
-                // C:\windows\system32\cmd.exe /D /S /C ""C:\Program Files (x86)\Android\android-sdk\cmdline-tools\3.0\bin\sdkmanager.bat" --licenses"
-                // Error: Could not find or load main class Files
-                const newSDKLocation = ANDROID_SDK_ROOT.replace(/\s/gi, '-');
-                core.debug(`moving ${ANDROID_SDK_ROOT} to ${newSDKLocation}`);
-                fs.mkdirSync(path.dirname(newSDKLocation), { recursive: true });
-                // intentionally using fs.renameSync,
-                // because it doesn't move across drives
-                fs.renameSync(ANDROID_SDK_ROOT, newSDKLocation);
-                ANDROID_SDK_ROOT = newSDKLocation;
-            }
-        }
-        const sdkManager = yield installSdkManager();
-        core.debug(`sdkmanager installed to: ${sdkManager}`);
-        yield callSdkManager(sdkManager, '--licenses');
-        yield callSdkManager(sdkManager, 'tools');
-        yield callSdkManager(sdkManager, 'platform-tools');
-        core.setOutput('ANDROID_COMMANDLINE_TOOLS_VERSION', COMMANDLINE_TOOLS_VERSION);
-        core.exportVariable('ANDROID_HOME', ANDROID_SDK_ROOT);
-        core.exportVariable('ANDROID_SDK_ROOT', ANDROID_SDK_ROOT);
-        core.addPath(path.dirname(sdkManager));
-        core.addPath(path.join(ANDROID_SDK_ROOT, 'platform-tools'));
-        core.debug('add matchers');
-        // eslint-disable-next-line no-console
-        console.log(`##[add-matcher]${path.join(__dirname, '..', 'matchers.json')}`);
-    });
-}
-run();
-
-
-/***/ }),
-
 /***/ 2357:
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("assert");;
+module.exports = require("assert");
 
 /***/ }),
 
@@ -8507,7 +8267,7 @@ module.exports = require("assert");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("child_process");;
+module.exports = require("child_process");
 
 /***/ }),
 
@@ -8515,7 +8275,7 @@ module.exports = require("child_process");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("constants");;
+module.exports = require("constants");
 
 /***/ }),
 
@@ -8523,7 +8283,7 @@ module.exports = require("constants");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("crypto");;
+module.exports = require("crypto");
 
 /***/ }),
 
@@ -8531,7 +8291,7 @@ module.exports = require("crypto");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("events");;
+module.exports = require("events");
 
 /***/ }),
 
@@ -8539,7 +8299,7 @@ module.exports = require("events");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("fs");;
+module.exports = require("fs");
 
 /***/ }),
 
@@ -8547,7 +8307,7 @@ module.exports = require("fs");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("http");;
+module.exports = require("http");
 
 /***/ }),
 
@@ -8555,7 +8315,7 @@ module.exports = require("http");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("https");;
+module.exports = require("https");
 
 /***/ }),
 
@@ -8563,7 +8323,7 @@ module.exports = require("https");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("net");;
+module.exports = require("net");
 
 /***/ }),
 
@@ -8571,7 +8331,7 @@ module.exports = require("net");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("os");;
+module.exports = require("os");
 
 /***/ }),
 
@@ -8579,7 +8339,7 @@ module.exports = require("os");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("path");;
+module.exports = require("path");
 
 /***/ }),
 
@@ -8587,7 +8347,7 @@ module.exports = require("path");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("stream");;
+module.exports = require("stream");
 
 /***/ }),
 
@@ -8595,7 +8355,7 @@ module.exports = require("stream");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("string_decoder");;
+module.exports = require("string_decoder");
 
 /***/ }),
 
@@ -8603,7 +8363,7 @@ module.exports = require("string_decoder");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("timers");;
+module.exports = require("timers");
 
 /***/ }),
 
@@ -8611,7 +8371,7 @@ module.exports = require("timers");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("tls");;
+module.exports = require("tls");
 
 /***/ }),
 
@@ -8619,7 +8379,7 @@ module.exports = require("tls");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("util");;
+module.exports = require("util");
 
 /***/ })
 
@@ -8631,8 +8391,9 @@ module.exports = require("util");;
 /******/ 	// The require function
 /******/ 	function __nccwpck_require__(moduleId) {
 /******/ 		// Check if module is in cache
-/******/ 		if(__webpack_module_cache__[moduleId]) {
-/******/ 			return __webpack_module_cache__[moduleId].exports;
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
@@ -8655,12 +8416,222 @@ module.exports = require("util");;
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__nccwpck_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__nccwpck_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__nccwpck_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__nccwpck_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
-/******/ 	__nccwpck_require__.ab = __dirname + "/";/************************************************************************/
-/******/ 	// module exports must be returned from runtime so entry inlining is disabled
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(399);
+/******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
+(() => {
+"use strict";
+__nccwpck_require__.r(__webpack_exports__);
+/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(2186);
+/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__nccwpck_require__.n(_actions_core__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _actions_tool_cache__WEBPACK_IMPORTED_MODULE_1__ = __nccwpck_require__(7784);
+/* harmony import */ var _actions_tool_cache__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__nccwpck_require__.n(_actions_tool_cache__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _actions_exec__WEBPACK_IMPORTED_MODULE_2__ = __nccwpck_require__(1514);
+/* harmony import */ var _actions_exec__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__nccwpck_require__.n(_actions_exec__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var path__WEBPACK_IMPORTED_MODULE_3__ = __nccwpck_require__(5622);
+/* harmony import */ var path__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__nccwpck_require__.n(path__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_4__ = __nccwpck_require__(5747);
+/* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__nccwpck_require__.n(fs__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var fs_extra__WEBPACK_IMPORTED_MODULE_5__ = __nccwpck_require__(5630);
+/* harmony import */ var fs_extra__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__nccwpck_require__.n(fs_extra__WEBPACK_IMPORTED_MODULE_5__);
+/* harmony import */ var os__WEBPACK_IMPORTED_MODULE_6__ = __nccwpck_require__(2087);
+/* harmony import */ var os__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__nccwpck_require__.n(os__WEBPACK_IMPORTED_MODULE_6__);
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+
+
+const CMDLINE_TOOLS_VERSION = '3.0';
+const COMMANDLINE_TOOLS_VERSION = '6858069';
+const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
+const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
+const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
+const HOME = os__WEBPACK_IMPORTED_MODULE_6__.homedir();
+const ANDROID_HOME_DIR = path__WEBPACK_IMPORTED_MODULE_3__.join(HOME, '.android');
+const ANDROID_HOME_SDK_DIR = path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_HOME_DIR, 'sdk');
+let ANDROID_SDK_ROOT = process.env['ANDROID_SDK_ROOT'] || ANDROID_HOME_SDK_DIR;
+function getSdkManagerPath(cmdToolsVersion) {
+    return path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_SDK_ROOT, 'cmdline-tools', cmdToolsVersion, 'bin', 'sdkmanager');
+}
+function findPreinstalledSdkManager() {
+    const result = { isFound: false, isCorrectVersion: false, exePath: '' };
+    // First try to find the version defined in CMDLINE_TOOLS_VERSION
+    result.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
+    result.isFound = fs__WEBPACK_IMPORTED_MODULE_4__.existsSync(result.exePath);
+    if (result.isFound) {
+        result.isCorrectVersion = true;
+        return result;
+    }
+    // cmdline-tools could have a 'latest' version, but if it was installed 2 years ago
+    // it may not be 'latest' as of today
+    result.exePath = getSdkManagerPath('latest');
+    result.isFound = fs__WEBPACK_IMPORTED_MODULE_4__.existsSync(result.exePath);
+    if (result.isFound) {
+        return result;
+    }
+    result.exePath = '';
+    // Find whatever version is available in ANDROID_SDK_ROOT
+    const cmdlineToolsDir = path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_SDK_ROOT, 'cmdline-tools');
+    const foundVersions = fs__WEBPACK_IMPORTED_MODULE_4__.existsSync(cmdlineToolsDir)
+        ? fs__WEBPACK_IMPORTED_MODULE_4__.readdirSync(cmdlineToolsDir)
+        : [];
+    const foundVersionsFiltered = foundVersions.filter(obj => '.' !== obj && '..' !== obj);
+    // Sort by desc, to get 2.0 first, before 1.0
+    const foundVersionsSorted = foundVersionsFiltered.sort((a, b) => (a > b ? -1 : 1));
+    for (const version of foundVersionsSorted) {
+        result.exePath = getSdkManagerPath(version);
+        result.isFound = fs__WEBPACK_IMPORTED_MODULE_4__.existsSync(result.exePath);
+        if (result.isFound) {
+            return result;
+        }
+    }
+    result.exePath = '';
+    return result;
+}
+function callSdkManager(sdkManager, arg) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const acceptBuffer = Buffer.from(Array(10).fill('y').join('\n'), 'utf8');
+        yield _actions_exec__WEBPACK_IMPORTED_MODULE_2__.exec(sdkManager, [arg], {
+            input: acceptBuffer
+        });
+    });
+}
+function installSdkManager() {
+    return __awaiter(this, void 0, void 0, function* () {
+        fs__WEBPACK_IMPORTED_MODULE_4__.mkdirSync(ANDROID_SDK_ROOT, { recursive: true });
+        // touch $ANDROID_SDK_ROOT/repositories.cfg
+        fs__WEBPACK_IMPORTED_MODULE_4__.closeSync(fs__WEBPACK_IMPORTED_MODULE_4__.openSync(path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_SDK_ROOT, 'repositories.cfg'), 'w'));
+        const sdkManager = findPreinstalledSdkManager();
+        if (!sdkManager.isFound) {
+            let cmdlineToolsURL;
+            if (process.platform === 'linux') {
+                cmdlineToolsURL = COMMANDLINE_TOOLS_LIN_URL;
+            }
+            else if (process.platform === 'darwin') {
+                cmdlineToolsURL = COMMANDLINE_TOOLS_MAC_URL;
+            }
+            else if (process.platform === 'win32') {
+                cmdlineToolsURL = COMMANDLINE_TOOLS_WIN_URL;
+            }
+            else {
+                _actions_core__WEBPACK_IMPORTED_MODULE_0__.error(`Unsupported platform: ${process.platform}`);
+                return '';
+            }
+            const cmdlineToolsZip = yield _actions_tool_cache__WEBPACK_IMPORTED_MODULE_1__.downloadTool(cmdlineToolsURL);
+            const cmdlineToolsExtractedLocation = yield _actions_tool_cache__WEBPACK_IMPORTED_MODULE_1__.extractZip(cmdlineToolsZip);
+            // Move cmdline-tools to where it would be if it was installed through sdkmanager
+            // Will allow calling sdkmanager without --sdk_root='..' argument
+            const desiredLocation = path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_SDK_ROOT, 'cmdline-tools', CMDLINE_TOOLS_VERSION);
+            // Create parent directory
+            fs__WEBPACK_IMPORTED_MODULE_4__.mkdirSync(path__WEBPACK_IMPORTED_MODULE_3__.dirname(desiredLocation), { recursive: true });
+            // Make sure we don't have leftover target directory (happens sometimes...)
+            if (fs__WEBPACK_IMPORTED_MODULE_4__.existsSync(desiredLocation))
+                fs_extra__WEBPACK_IMPORTED_MODULE_5__.removeSync(desiredLocation);
+            // @TODO: use io.mv instead of fs-extra.moveSync once following issue is resolved:
+            // https://github.com/actions/toolkit/issues/706
+            fs_extra__WEBPACK_IMPORTED_MODULE_5__.moveSync(path__WEBPACK_IMPORTED_MODULE_3__.join(cmdlineToolsExtractedLocation, 'cmdline-tools'), desiredLocation);
+            fs_extra__WEBPACK_IMPORTED_MODULE_5__.removeSync(cmdlineToolsExtractedLocation);
+            sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
+            sdkManager.isCorrectVersion = true;
+        }
+        if (!sdkManager.isCorrectVersion) {
+            yield callSdkManager(sdkManager.exePath, `cmdline-tools;${CMDLINE_TOOLS_VERSION}`);
+            sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
+        }
+        return sdkManager.exePath;
+    });
+}
+function run() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if ('win16' === process.env['ImageOS']) {
+            if (-1 !== ANDROID_SDK_ROOT.indexOf(' ')) {
+                // On Windows2016, Android SDK is installed to Program Files,
+                // and it doesn't really work..
+                // C:\windows\system32\cmd.exe /D /S /C ""C:\Program Files (x86)\Android\android-sdk\cmdline-tools\3.0\bin\sdkmanager.bat" --licenses"
+                // Error: Could not find or load main class Files
+                const newSDKLocation = ANDROID_SDK_ROOT.replace(/\s/gi, '-');
+                _actions_core__WEBPACK_IMPORTED_MODULE_0__.debug(`moving ${ANDROID_SDK_ROOT} to ${newSDKLocation}`);
+                fs__WEBPACK_IMPORTED_MODULE_4__.mkdirSync(path__WEBPACK_IMPORTED_MODULE_3__.dirname(newSDKLocation), { recursive: true });
+                // intentionally using fs.renameSync,
+                // because it doesn't move across drives
+                fs__WEBPACK_IMPORTED_MODULE_4__.renameSync(ANDROID_SDK_ROOT, newSDKLocation);
+                ANDROID_SDK_ROOT = newSDKLocation;
+            }
+        }
+        const sdkManager = yield installSdkManager();
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.debug(`sdkmanager installed to: ${sdkManager}`);
+        yield callSdkManager(sdkManager, '--licenses');
+        yield callSdkManager(sdkManager, 'tools');
+        yield callSdkManager(sdkManager, 'platform-tools');
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput('ANDROID_COMMANDLINE_TOOLS_VERSION', COMMANDLINE_TOOLS_VERSION);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.exportVariable('ANDROID_HOME', ANDROID_SDK_ROOT);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.exportVariable('ANDROID_SDK_ROOT', ANDROID_SDK_ROOT);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.addPath(path__WEBPACK_IMPORTED_MODULE_3__.dirname(sdkManager));
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.addPath(path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_SDK_ROOT, 'platform-tools'));
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.debug('add matchers');
+        // eslint-disable-next-line no-console
+        console.log(`##[add-matcher]${path__WEBPACK_IMPORTED_MODULE_3__.join(__dirname, '..', 'matchers.json')}`);
+    });
+}
+run();
+
+})();
+
+module.exports = __webpack_exports__;
 /******/ })()
 ;
