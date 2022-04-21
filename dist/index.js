@@ -8496,8 +8496,8 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 
 
 
-const CMDLINE_TOOLS_VERSION = '3.0';
-const COMMANDLINE_TOOLS_VERSION = '6858069';
+const CMDLINE_TOOLS_VERSION = '6.0';
+const COMMANDLINE_TOOLS_VERSION = '8092744';
 const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
 const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
 const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
