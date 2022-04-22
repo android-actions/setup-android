@@ -22,6 +22,10 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macos-latest
+
+    # Disabled, because daveol/SampleApplication is missing
+    if: ${{ false }}
+
     steps:
       - uses: actions/checkout@v3
         with:
