@@ -27,7 +27,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.issue = exports.issueCommand = void 0;
-const os = __importStar(__nccwpck_require__(2087));
+const os = __importStar(__nccwpck_require__(2037));
 const utils_1 = __nccwpck_require__(5278);
 /**
  * Commands
@@ -134,12 +134,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
+exports.getIDToken = exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
 const command_1 = __nccwpck_require__(7351);
 const file_command_1 = __nccwpck_require__(717);
 const utils_1 = __nccwpck_require__(5278);
-const os = __importStar(__nccwpck_require__(2087));
-const path = __importStar(__nccwpck_require__(5622));
+const os = __importStar(__nccwpck_require__(2037));
+const path = __importStar(__nccwpck_require__(1017));
+const oidc_utils_1 = __nccwpck_require__(8041);
 /**
  * The code to exit an action
  */
@@ -312,19 +313,30 @@ exports.debug = debug;
 /**
  * Adds an error issue
  * @param message error issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
  */
-function error(message) {
-    command_1.issue('error', message instanceof Error ? message.toString() : message);
+function error(message, properties = {}) {
+    command_1.issueCommand('error', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 exports.error = error;
 /**
- * Adds an warning issue
+ * Adds a warning issue
  * @param message warning issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
  */
-function warning(message) {
-    command_1.issue('warning', message instanceof Error ? message.toString() : message);
+function warning(message, properties = {}) {
+    command_1.issueCommand('warning', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 exports.warning = warning;
+/**
+ * Adds a notice issue
+ * @param message notice issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
+ */
+function notice(message, properties = {}) {
+    command_1.issueCommand('notice', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+}
+exports.notice = notice;
 /**
  * Writes info to log with console.log.
  * @param message info message
@@ -397,6 +409,12 @@ function getState(name) {
     return process.env[`STATE_${name}`] || '';
 }
 exports.getState = getState;
+function getIDToken(aud) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield oidc_utils_1.OidcClient.getIDToken(aud);
+    });
+}
+exports.getIDToken = getIDToken;
 //# sourceMappingURL=core.js.map
 
 /***/ }),
@@ -430,8 +448,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.issueCommand = void 0;
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const fs = __importStar(__nccwpck_require__(5747));
-const os = __importStar(__nccwpck_require__(2087));
+const fs = __importStar(__nccwpck_require__(7147));
+const os = __importStar(__nccwpck_require__(2037));
 const utils_1 = __nccwpck_require__(5278);
 function issueCommand(command, message) {
     const filePath = process.env[`GITHUB_${command}`];
@@ -450,6 +468,90 @@ exports.issueCommand = issueCommand;
 
 /***/ }),
 
+/***/ 8041:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.OidcClient = void 0;
+const http_client_1 = __nccwpck_require__(9925);
+const auth_1 = __nccwpck_require__(3702);
+const core_1 = __nccwpck_require__(2186);
+class OidcClient {
+    static createHttpClient(allowRetry = true, maxRetry = 10) {
+        const requestOptions = {
+            allowRetries: allowRetry,
+            maxRetries: maxRetry
+        };
+        return new http_client_1.HttpClient('actions/oidc-client', [new auth_1.BearerCredentialHandler(OidcClient.getRequestToken())], requestOptions);
+    }
+    static getRequestToken() {
+        const token = process.env['ACTIONS_ID_TOKEN_REQUEST_TOKEN'];
+        if (!token) {
+            throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_TOKEN env variable');
+        }
+        return token;
+    }
+    static getIDTokenUrl() {
+        const runtimeUrl = process.env['ACTIONS_ID_TOKEN_REQUEST_URL'];
+        if (!runtimeUrl) {
+            throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable');
+        }
+        return runtimeUrl;
+    }
+    static getCall(id_token_url) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const httpclient = OidcClient.createHttpClient();
+            const res = yield httpclient
+                .getJson(id_token_url)
+                .catch(error => {
+                throw new Error(`Failed to get ID Token. \n 
+        Error Code : ${error.statusCode}\n 
+        Error Message: ${error.result.message}`);
+            });
+            const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
+            if (!id_token) {
+                throw new Error('Response json body do not have ID Token field');
+            }
+            return id_token;
+        });
+    }
+    static getIDToken(audience) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                // New ID Token is requested from action service
+                let id_token_url = OidcClient.getIDTokenUrl();
+                if (audience) {
+                    const encodedAudience = encodeURIComponent(audience);
+                    id_token_url = `${id_token_url}&audience=${encodedAudience}`;
+                }
+                core_1.debug(`ID token url is ${id_token_url}`);
+                const id_token = yield OidcClient.getCall(id_token_url);
+                core_1.setSecret(id_token);
+                return id_token;
+            }
+            catch (error) {
+                throw new Error(`Error message: ${error.message}`);
+            }
+        });
+    }
+}
+exports.OidcClient = OidcClient;
+//# sourceMappingURL=oidc-utils.js.map
+
+/***/ }),
+
 /***/ 5278:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -458,7 +560,7 @@ exports.issueCommand = issueCommand;
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.toCommandValue = void 0;
+exports.toCommandProperties = exports.toCommandValue = void 0;
 /**
  * Sanitizes an input into a string so it can be passed into issueCommand safely
  * @param input input to sanitize into a string
@@ -473,6 +575,26 @@ function toCommandValue(input) {
     return JSON.stringify(input);
 }
 exports.toCommandValue = toCommandValue;
+/**
+ *
+ * @param annotationProperties
+ * @returns The command properties to send with the actual annotation command
+ * See IssueCommandProperties: https://github.com/actions/runner/blob/main/src/Runner.Worker/ActionCommandManager.cs#L646
+ */
+function toCommandProperties(annotationProperties) {
+    if (!Object.keys(annotationProperties).length) {
+        return {};
+    }
+    return {
+        title: annotationProperties.title,
+        file: annotationProperties.file,
+        line: annotationProperties.startLine,
+        endLine: annotationProperties.endLine,
+        col: annotationProperties.startColumn,
+        endColumn: annotationProperties.endColumn
+    };
+}
+exports.toCommandProperties = toCommandProperties;
 //# sourceMappingURL=utils.js.map
 
 /***/ }),
@@ -512,7 +634,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getExecOutput = exports.exec = void 0;
-const string_decoder_1 = __nccwpck_require__(4304);
+const string_decoder_1 = __nccwpck_require__(1576);
 const tr = __importStar(__nccwpck_require__(8159));
 /**
  * Exec a command.
@@ -622,13 +744,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.argStringToArray = exports.ToolRunner = void 0;
-const os = __importStar(__nccwpck_require__(2087));
-const events = __importStar(__nccwpck_require__(8614));
-const child = __importStar(__nccwpck_require__(3129));
-const path = __importStar(__nccwpck_require__(5622));
+const os = __importStar(__nccwpck_require__(2037));
+const events = __importStar(__nccwpck_require__(2361));
+const child = __importStar(__nccwpck_require__(2081));
+const path = __importStar(__nccwpck_require__(1017));
 const io = __importStar(__nccwpck_require__(7436));
 const ioUtil = __importStar(__nccwpck_require__(1962));
-const timers_1 = __nccwpck_require__(8213);
+const timers_1 = __nccwpck_require__(9512);
 /* eslint-disable @typescript-eslint/unbound-method */
 const IS_WINDOWS = process.platform === 'win32';
 /*
@@ -1212,14 +1334,80 @@ class ExecState extends events.EventEmitter {
 
 /***/ }),
 
+/***/ 3702:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+class BasicCredentialHandler {
+    constructor(username, password) {
+        this.username = username;
+        this.password = password;
+    }
+    prepareRequest(options) {
+        options.headers['Authorization'] =
+            'Basic ' +
+                Buffer.from(this.username + ':' + this.password).toString('base64');
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.BasicCredentialHandler = BasicCredentialHandler;
+class BearerCredentialHandler {
+    constructor(token) {
+        this.token = token;
+    }
+    // currently implements pre-authorization
+    // TODO: support preAuth = false where it hooks on 401
+    prepareRequest(options) {
+        options.headers['Authorization'] = 'Bearer ' + this.token;
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.BearerCredentialHandler = BearerCredentialHandler;
+class PersonalAccessTokenCredentialHandler {
+    constructor(token) {
+        this.token = token;
+    }
+    // currently implements pre-authorization
+    // TODO: support preAuth = false where it hooks on 401
+    prepareRequest(options) {
+        options.headers['Authorization'] =
+            'Basic ' + Buffer.from('PAT:' + this.token).toString('base64');
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.PersonalAccessTokenCredentialHandler = PersonalAccessTokenCredentialHandler;
+
+
+/***/ }),
+
 /***/ 9925:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const http = __nccwpck_require__(8605);
-const https = __nccwpck_require__(7211);
+const http = __nccwpck_require__(3685);
+const https = __nccwpck_require__(5687);
 const pm = __nccwpck_require__(6443);
 let tunnel;
 var HttpCodes;
@@ -1858,8 +2046,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rename = exports.readlink = exports.readdir = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
-const fs = __importStar(__nccwpck_require__(5747));
-const path = __importStar(__nccwpck_require__(5622));
+const fs = __importStar(__nccwpck_require__(7147));
+const path = __importStar(__nccwpck_require__(1017));
 _a = fs.promises, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
 exports.IS_WINDOWS = process.platform === 'win32';
 function exists(fsPath) {
@@ -2041,10 +2229,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.findInPath = exports.which = exports.mkdirP = exports.rmRF = exports.mv = exports.cp = void 0;
-const assert_1 = __nccwpck_require__(2357);
-const childProcess = __importStar(__nccwpck_require__(3129));
-const path = __importStar(__nccwpck_require__(5622));
-const util_1 = __nccwpck_require__(1669);
+const assert_1 = __nccwpck_require__(9491);
+const childProcess = __importStar(__nccwpck_require__(2081));
+const path = __importStar(__nccwpck_require__(1017));
+const util_1 = __nccwpck_require__(3837);
 const ioUtil = __importStar(__nccwpck_require__(1962));
 const exec = util_1.promisify(childProcess.exec);
 const execFile = util_1.promisify(childProcess.execFile);
@@ -2393,9 +2581,9 @@ const semver = __importStar(__nccwpck_require__(5911));
 const core_1 = __nccwpck_require__(2186);
 // needs to be require for core node modules to be mocked
 /* eslint @typescript-eslint/no-require-imports: 0 */
-const os = __nccwpck_require__(2087);
-const cp = __nccwpck_require__(3129);
-const fs = __nccwpck_require__(5747);
+const os = __nccwpck_require__(2037);
+const cp = __nccwpck_require__(2081);
+const fs = __nccwpck_require__(7147);
 function _findMatch(versionSpec, stable, candidates, archFilter) {
     return __awaiter(this, void 0, void 0, function* () {
         const platFilter = os.platform();
@@ -2619,17 +2807,17 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.evaluateVersions = exports.isExplicitVersion = exports.findFromManifest = exports.getManifestFromRepo = exports.findAllVersions = exports.find = exports.cacheFile = exports.cacheDir = exports.extractZip = exports.extractXar = exports.extractTar = exports.extract7z = exports.downloadTool = exports.HTTPError = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const io = __importStar(__nccwpck_require__(7436));
-const fs = __importStar(__nccwpck_require__(5747));
+const fs = __importStar(__nccwpck_require__(7147));
 const mm = __importStar(__nccwpck_require__(2473));
-const os = __importStar(__nccwpck_require__(2087));
-const path = __importStar(__nccwpck_require__(5622));
+const os = __importStar(__nccwpck_require__(2037));
+const path = __importStar(__nccwpck_require__(1017));
 const httpm = __importStar(__nccwpck_require__(9925));
 const semver = __importStar(__nccwpck_require__(5911));
-const stream = __importStar(__nccwpck_require__(2413));
-const util = __importStar(__nccwpck_require__(1669));
+const stream = __importStar(__nccwpck_require__(2781));
+const util = __importStar(__nccwpck_require__(3837));
 const v4_1 = __importDefault(__nccwpck_require__(824));
 const exec_1 = __nccwpck_require__(1514);
-const assert_1 = __nccwpck_require__(2357);
+const assert_1 = __nccwpck_require__(9491);
 const retry_helper_1 = __nccwpck_require__(8279);
 class HTTPError extends Error {
     constructor(httpStatusCode) {
@@ -3251,16 +3439,16 @@ function _unique(values) {
 
 /***/ }),
 
-/***/ 3338:
+/***/ 9618:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const fs = __nccwpck_require__(7758)
-const path = __nccwpck_require__(5622)
-const mkdirsSync = __nccwpck_require__(2915).mkdirsSync
-const utimesMillisSync = __nccwpck_require__(2548).utimesMillisSync
+const path = __nccwpck_require__(1017)
+const mkdirsSync = (__nccwpck_require__(8605).mkdirsSync)
+const utimesMillisSync = (__nccwpck_require__(2548).utimesMillisSync)
 const stat = __nccwpck_require__(3901)
 
 function copySync (src, dest, opts) {
@@ -3274,8 +3462,11 @@ function copySync (src, dest, opts) {
 
   // Warn about using preserveTimestamps on 32-bit node
   if (opts.preserveTimestamps && process.arch === 'ia32') {
-    console.warn(`fs-extra: Using the preserveTimestamps option in 32-bit node is not recommended;\n
-    see https://github.com/jprichardson/node-fs-extra/issues/269`)
+    process.emitWarning(
+      'Using the preserveTimestamps option in 32-bit node is not recommended;\n\n' +
+      '\tsee https://github.com/jprichardson/node-fs-extra/issues/269',
+      'Warning', 'fs-extra-WARN0002'
+    )
   }
 
   const { srcStat, destStat } = stat.checkPathsSync(src, dest, 'copy', opts)
@@ -3425,19 +3616,6 @@ module.exports = copySync
 
 /***/ }),
 
-/***/ 1135:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-module.exports = {
-  copySync: __nccwpck_require__(3338)
-}
-
-
-/***/ }),
-
 /***/ 8834:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -3445,10 +3623,10 @@ module.exports = {
 
 
 const fs = __nccwpck_require__(7758)
-const path = __nccwpck_require__(5622)
-const mkdirs = __nccwpck_require__(2915).mkdirs
-const pathExists = __nccwpck_require__(3835).pathExists
-const utimesMillis = __nccwpck_require__(2548).utimesMillis
+const path = __nccwpck_require__(1017)
+const mkdirs = (__nccwpck_require__(8605).mkdirs)
+const pathExists = (__nccwpck_require__(3835).pathExists)
+const utimesMillis = (__nccwpck_require__(2548).utimesMillis)
 const stat = __nccwpck_require__(3901)
 
 function copy (src, dest, opts, cb) {
@@ -3467,8 +3645,11 @@ function copy (src, dest, opts, cb) {
 
   // Warn about using preserveTimestamps on 32-bit node
   if (opts.preserveTimestamps && process.arch === 'ia32') {
-    console.warn(`fs-extra: Using the preserveTimestamps option in 32-bit node is not recommended;\n
-    see https://github.com/jprichardson/node-fs-extra/issues/269`)
+    process.emitWarning(
+      'Using the preserveTimestamps option in 32-bit node is not recommended;\n\n' +
+      '\tsee https://github.com/jprichardson/node-fs-extra/issues/269',
+      'Warning', 'fs-extra-WARN0001'
+    )
   }
 
   stat.checkPaths(src, dest, 'copy', opts, (err, stats) => {
@@ -3684,9 +3865,10 @@ module.exports = copy
 "use strict";
 
 
-const u = __nccwpck_require__(9046).fromCallback
+const u = (__nccwpck_require__(9046).fromCallback)
 module.exports = {
-  copy: u(__nccwpck_require__(8834))
+  copy: u(__nccwpck_require__(8834)),
+  copySync: __nccwpck_require__(9618)
 }
 
 
@@ -3698,10 +3880,10 @@ module.exports = {
 "use strict";
 
 
-const u = __nccwpck_require__(9046).fromPromise
+const u = (__nccwpck_require__(9046).fromPromise)
 const fs = __nccwpck_require__(1176)
-const path = __nccwpck_require__(5622)
-const mkdir = __nccwpck_require__(2915)
+const path = __nccwpck_require__(1017)
+const mkdir = __nccwpck_require__(8605)
 const remove = __nccwpck_require__(7357)
 
 const emptyDir = u(async function emptyDir (dir) {
@@ -3745,10 +3927,10 @@ module.exports = {
 "use strict";
 
 
-const u = __nccwpck_require__(9046).fromCallback
-const path = __nccwpck_require__(5622)
+const u = (__nccwpck_require__(9046).fromCallback)
+const path = __nccwpck_require__(1017)
 const fs = __nccwpck_require__(7758)
-const mkdir = __nccwpck_require__(2915)
+const mkdir = __nccwpck_require__(8605)
 
 function createFile (file, callback) {
   function makeFile () {
@@ -3822,26 +4004,26 @@ module.exports = {
 "use strict";
 
 
-const file = __nccwpck_require__(2164)
-const link = __nccwpck_require__(3797)
-const symlink = __nccwpck_require__(2549)
+const { createFile, createFileSync } = __nccwpck_require__(2164)
+const { createLink, createLinkSync } = __nccwpck_require__(3797)
+const { createSymlink, createSymlinkSync } = __nccwpck_require__(2549)
 
 module.exports = {
   // file
-  createFile: file.createFile,
-  createFileSync: file.createFileSync,
-  ensureFile: file.createFile,
-  ensureFileSync: file.createFileSync,
+  createFile,
+  createFileSync,
+  ensureFile: createFile,
+  ensureFileSync: createFileSync,
   // link
-  createLink: link.createLink,
-  createLinkSync: link.createLinkSync,
-  ensureLink: link.createLink,
-  ensureLinkSync: link.createLinkSync,
+  createLink,
+  createLinkSync,
+  ensureLink: createLink,
+  ensureLinkSync: createLinkSync,
   // symlink
-  createSymlink: symlink.createSymlink,
-  createSymlinkSync: symlink.createSymlinkSync,
-  ensureSymlink: symlink.createSymlink,
-  ensureSymlinkSync: symlink.createSymlinkSync
+  createSymlink,
+  createSymlinkSync,
+  ensureSymlink: createSymlink,
+  ensureSymlinkSync: createSymlinkSync
 }
 
 
@@ -3853,11 +4035,11 @@ module.exports = {
 "use strict";
 
 
-const u = __nccwpck_require__(9046).fromCallback
-const path = __nccwpck_require__(5622)
+const u = (__nccwpck_require__(9046).fromCallback)
+const path = __nccwpck_require__(1017)
 const fs = __nccwpck_require__(7758)
-const mkdir = __nccwpck_require__(2915)
-const pathExists = __nccwpck_require__(3835).pathExists
+const mkdir = __nccwpck_require__(8605)
+const pathExists = (__nccwpck_require__(3835).pathExists)
 const { areIdentical } = __nccwpck_require__(3901)
 
 function createLink (srcpath, dstpath, callback) {
@@ -3925,9 +4107,9 @@ module.exports = {
 "use strict";
 
 
-const path = __nccwpck_require__(5622)
+const path = __nccwpck_require__(1017)
 const fs = __nccwpck_require__(7758)
-const pathExists = __nccwpck_require__(3835).pathExists
+const pathExists = (__nccwpck_require__(3835).pathExists)
 
 /**
  * Function that returns two types of paths, one relative to symlink, and one
@@ -4071,10 +4253,10 @@ module.exports = {
 "use strict";
 
 
-const u = __nccwpck_require__(9046).fromCallback
-const path = __nccwpck_require__(5622)
+const u = (__nccwpck_require__(9046).fromCallback)
+const path = __nccwpck_require__(1017)
 const fs = __nccwpck_require__(1176)
-const _mkdirs = __nccwpck_require__(2915)
+const _mkdirs = __nccwpck_require__(8605)
 const mkdirs = _mkdirs.mkdirs
 const mkdirsSync = _mkdirs.mkdirsSync
 
@@ -4086,7 +4268,7 @@ const _symlinkType = __nccwpck_require__(8254)
 const symlinkType = _symlinkType.symlinkType
 const symlinkTypeSync = _symlinkType.symlinkTypeSync
 
-const pathExists = __nccwpck_require__(3835).pathExists
+const pathExists = (__nccwpck_require__(3835).pathExists)
 
 const { areIdentical } = __nccwpck_require__(3901)
 
@@ -4162,7 +4344,7 @@ module.exports = {
 
 // This is adapted from https://github.com/normalize/mz
 // Copyright (c) 2014-2016 Jonathan Ong me@jongleberry.com and Contributors
-const u = __nccwpck_require__(9046).fromCallback
+const u = (__nccwpck_require__(9046).fromCallback)
 const fs = __nccwpck_require__(7758)
 
 const api = [
@@ -4215,7 +4397,6 @@ Object.assign(exports, fs)
 api.forEach(method => {
   exports[method] = u(fs[method])
 })
-exports.realpath.native = u(fs.realpath.native)
 
 // We differ from mz/fs in that we still ship the old, broken, fs.exists()
 // since we are a drop-in replacement for the native module
@@ -4279,6 +4460,16 @@ if (typeof fs.writev === 'function') {
   }
 }
 
+// fs.realpath.native sometimes not available if fs is monkey-patched
+if (typeof fs.realpath.native === 'function') {
+  exports.realpath.native = u(fs.realpath.native)
+} else {
+  process.emitWarning(
+    'fs.realpath.native is not a function. Is fs being monkey-patched?',
+    'Warning', 'fs-extra-WARN0003'
+  )
+}
+
 
 /***/ }),
 
@@ -4292,15 +4483,13 @@ module.exports = {
   // Export promiseified graceful-fs:
   ...__nccwpck_require__(1176),
   // Export extra methods:
-  ...__nccwpck_require__(1135),
   ...__nccwpck_require__(1335),
   ...__nccwpck_require__(6970),
   ...__nccwpck_require__(55),
   ...__nccwpck_require__(213),
-  ...__nccwpck_require__(2915),
-  ...__nccwpck_require__(9665),
+  ...__nccwpck_require__(8605),
   ...__nccwpck_require__(1497),
-  ...__nccwpck_require__(6570),
+  ...__nccwpck_require__(1832),
   ...__nccwpck_require__(3835),
   ...__nccwpck_require__(7357)
 }
@@ -4314,7 +4503,7 @@ module.exports = {
 "use strict";
 
 
-const u = __nccwpck_require__(9046).fromPromise
+const u = (__nccwpck_require__(9046).fromPromise)
 const jsonFile = __nccwpck_require__(8970)
 
 jsonFile.outputJson = u(__nccwpck_require__(531))
@@ -4358,7 +4547,7 @@ module.exports = {
 
 
 const { stringify } = __nccwpck_require__(5902)
-const { outputFileSync } = __nccwpck_require__(6570)
+const { outputFileSync } = __nccwpck_require__(1832)
 
 function outputJsonSync (file, data, options) {
   const str = stringify(data, options)
@@ -4378,7 +4567,7 @@ module.exports = outputJsonSync
 
 
 const { stringify } = __nccwpck_require__(5902)
-const { outputFile } = __nccwpck_require__(6570)
+const { outputFile } = __nccwpck_require__(1832)
 
 async function outputJson (file, data, options = {}) {
   const str = stringify(data, options)
@@ -4391,12 +4580,12 @@ module.exports = outputJson
 
 /***/ }),
 
-/***/ 2915:
+/***/ 8605:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
-const u = __nccwpck_require__(9046).fromPromise
+const u = (__nccwpck_require__(9046).fromPromise)
 const { makeDir: _makeDir, makeDirSync } = __nccwpck_require__(2751)
 const makeDir = u(_makeDir)
 
@@ -4458,7 +4647,7 @@ module.exports.makeDirSync = (dir, options) => {
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-const path = __nccwpck_require__(5622)
+const path = __nccwpck_require__(1017)
 
 // https://github.com/nodejs/node/issues/8987
 // https://github.com/libuv/libuv/pull/1088
@@ -4477,30 +4666,32 @@ module.exports.checkPath = function checkPath (pth) {
 
 /***/ }),
 
-/***/ 9665:
+/***/ 1497:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
+const u = (__nccwpck_require__(9046).fromCallback)
 module.exports = {
-  moveSync: __nccwpck_require__(6445)
+  move: u(__nccwpck_require__(2231)),
+  moveSync: __nccwpck_require__(2047)
 }
 
 
 /***/ }),
 
-/***/ 6445:
+/***/ 2047:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const fs = __nccwpck_require__(7758)
-const path = __nccwpck_require__(5622)
-const copySync = __nccwpck_require__(1135).copySync
-const removeSync = __nccwpck_require__(7357).removeSync
-const mkdirpSync = __nccwpck_require__(2915).mkdirpSync
+const path = __nccwpck_require__(1017)
+const copySync = (__nccwpck_require__(1335).copySync)
+const removeSync = (__nccwpck_require__(7357).removeSync)
+const mkdirpSync = (__nccwpck_require__(8605).mkdirpSync)
 const stat = __nccwpck_require__(3901)
 
 function moveSync (src, dest, opts) {
@@ -4552,20 +4743,6 @@ module.exports = moveSync
 
 /***/ }),
 
-/***/ 1497:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const u = __nccwpck_require__(9046).fromCallback
-module.exports = {
-  move: u(__nccwpck_require__(2231))
-}
-
-
-/***/ }),
-
 /***/ 2231:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -4573,11 +4750,11 @@ module.exports = {
 
 
 const fs = __nccwpck_require__(7758)
-const path = __nccwpck_require__(5622)
-const copy = __nccwpck_require__(1335).copy
-const remove = __nccwpck_require__(7357).remove
-const mkdirp = __nccwpck_require__(2915).mkdirp
-const pathExists = __nccwpck_require__(3835).pathExists
+const path = __nccwpck_require__(1017)
+const copy = (__nccwpck_require__(1335).copy)
+const remove = (__nccwpck_require__(7357).remove)
+const mkdirp = (__nccwpck_require__(8605).mkdirp)
+const pathExists = (__nccwpck_require__(3835).pathExists)
 const stat = __nccwpck_require__(3901)
 
 function move (src, dest, opts, cb) {
@@ -4585,6 +4762,8 @@ function move (src, dest, opts, cb) {
     cb = opts
     opts = {}
   }
+
+  opts = opts || {}
 
   const overwrite = opts.overwrite || opts.clobber || false
 
@@ -4647,17 +4826,17 @@ module.exports = move
 
 /***/ }),
 
-/***/ 6570:
+/***/ 1832:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const u = __nccwpck_require__(9046).fromCallback
+const u = (__nccwpck_require__(9046).fromCallback)
 const fs = __nccwpck_require__(7758)
-const path = __nccwpck_require__(5622)
-const mkdir = __nccwpck_require__(2915)
-const pathExists = __nccwpck_require__(3835).pathExists
+const path = __nccwpck_require__(1017)
+const mkdir = __nccwpck_require__(8605)
+const pathExists = (__nccwpck_require__(3835).pathExists)
 
 function outputFile (file, data, encoding, callback) {
   if (typeof encoding === 'function') {
@@ -4700,7 +4879,7 @@ module.exports = {
 
 "use strict";
 
-const u = __nccwpck_require__(9046).fromPromise
+const u = (__nccwpck_require__(9046).fromPromise)
 const fs = __nccwpck_require__(1176)
 
 function pathExists (path) {
@@ -4722,7 +4901,7 @@ module.exports = {
 
 
 const fs = __nccwpck_require__(7758)
-const u = __nccwpck_require__(9046).fromCallback
+const u = (__nccwpck_require__(9046).fromCallback)
 const rimraf = __nccwpck_require__(8761)
 
 function remove (path, callback) {
@@ -4752,8 +4931,8 @@ module.exports = {
 
 
 const fs = __nccwpck_require__(7758)
-const path = __nccwpck_require__(5622)
-const assert = __nccwpck_require__(2357)
+const path = __nccwpck_require__(1017)
+const assert = __nccwpck_require__(9491)
 
 const isWindows = (process.platform === 'win32')
 
@@ -5062,8 +5241,8 @@ rimraf.sync = rimrafSync
 
 
 const fs = __nccwpck_require__(1176)
-const path = __nccwpck_require__(5622)
-const util = __nccwpck_require__(1669)
+const path = __nccwpck_require__(1017)
+const util = __nccwpck_require__(3837)
 
 function getStats (src, dest, opts) {
   const statFunc = opts.dereference
@@ -5285,12 +5464,12 @@ function clone (obj) {
 /***/ 7758:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-var fs = __nccwpck_require__(5747)
+var fs = __nccwpck_require__(7147)
 var polyfills = __nccwpck_require__(263)
 var legacy = __nccwpck_require__(3086)
 var clone = __nccwpck_require__(7356)
 
-var util = __nccwpck_require__(1669)
+var util = __nccwpck_require__(3837)
 
 /* istanbul ignore next - node 0.x polyfill */
 var gracefulQueue
@@ -5341,7 +5520,7 @@ if (!fs[gracefulQueue]) {
       return fs$close.call(fs, fd, function (err) {
         // This function uses the graceful-fs shared queue
         if (!err) {
-          retry()
+          resetQueue()
         }
 
         if (typeof cb === 'function')
@@ -5359,7 +5538,7 @@ if (!fs[gracefulQueue]) {
     function closeSync (fd) {
       // This function uses the graceful-fs shared queue
       fs$closeSync.apply(fs, arguments)
-      retry()
+      resetQueue()
     }
 
     Object.defineProperty(closeSync, previousSymbol, {
@@ -5371,7 +5550,7 @@ if (!fs[gracefulQueue]) {
   if (/\bgfs4\b/i.test(process.env.NODE_DEBUG || '')) {
     process.on('exit', function() {
       debug(fs[gracefulQueue])
-      __nccwpck_require__(2357).equal(fs[gracefulQueue].length, 0)
+      __nccwpck_require__(9491).equal(fs[gracefulQueue].length, 0)
     })
   }
 }
@@ -5401,14 +5580,13 @@ function patch (fs) {
 
     return go$readFile(path, options, cb)
 
-    function go$readFile (path, options, cb) {
+    function go$readFile (path, options, cb, startTime) {
       return fs$readFile(path, options, function (err) {
         if (err && (err.code === 'EMFILE' || err.code === 'ENFILE'))
-          enqueue([go$readFile, [path, options, cb]])
+          enqueue([go$readFile, [path, options, cb], err, startTime || Date.now(), Date.now()])
         else {
           if (typeof cb === 'function')
             cb.apply(this, arguments)
-          retry()
         }
       })
     }
@@ -5422,14 +5600,13 @@ function patch (fs) {
 
     return go$writeFile(path, data, options, cb)
 
-    function go$writeFile (path, data, options, cb) {
+    function go$writeFile (path, data, options, cb, startTime) {
       return fs$writeFile(path, data, options, function (err) {
         if (err && (err.code === 'EMFILE' || err.code === 'ENFILE'))
-          enqueue([go$writeFile, [path, data, options, cb]])
+          enqueue([go$writeFile, [path, data, options, cb], err, startTime || Date.now(), Date.now()])
         else {
           if (typeof cb === 'function')
             cb.apply(this, arguments)
-          retry()
         }
       })
     }
@@ -5444,14 +5621,13 @@ function patch (fs) {
 
     return go$appendFile(path, data, options, cb)
 
-    function go$appendFile (path, data, options, cb) {
+    function go$appendFile (path, data, options, cb, startTime) {
       return fs$appendFile(path, data, options, function (err) {
         if (err && (err.code === 'EMFILE' || err.code === 'ENFILE'))
-          enqueue([go$appendFile, [path, data, options, cb]])
+          enqueue([go$appendFile, [path, data, options, cb], err, startTime || Date.now(), Date.now()])
         else {
           if (typeof cb === 'function')
             cb.apply(this, arguments)
-          retry()
         }
       })
     }
@@ -5465,47 +5641,60 @@ function patch (fs) {
       cb = flags
       flags = 0
     }
-    return fs$copyFile(src, dest, flags, function (err) {
-      if (err && (err.code === 'EMFILE' || err.code === 'ENFILE'))
-        enqueue([fs$copyFile, [src, dest, flags, cb]])
-      else {
-        if (typeof cb === 'function')
-          cb.apply(this, arguments)
-        retry()
-      }
-    })
+    return go$copyFile(src, dest, flags, cb)
+
+    function go$copyFile (src, dest, flags, cb, startTime) {
+      return fs$copyFile(src, dest, flags, function (err) {
+        if (err && (err.code === 'EMFILE' || err.code === 'ENFILE'))
+          enqueue([go$copyFile, [src, dest, flags, cb], err, startTime || Date.now(), Date.now()])
+        else {
+          if (typeof cb === 'function')
+            cb.apply(this, arguments)
+        }
+      })
+    }
   }
 
   var fs$readdir = fs.readdir
   fs.readdir = readdir
+  var noReaddirOptionVersions = /^v[0-5]\./
   function readdir (path, options, cb) {
-    var args = [path]
-    if (typeof options !== 'function') {
-      args.push(options)
-    } else {
-      cb = options
-    }
-    args.push(go$readdir$cb)
+    if (typeof options === 'function')
+      cb = options, options = null
 
-    return go$readdir(args)
+    var go$readdir = noReaddirOptionVersions.test(process.version)
+      ? function go$readdir (path, options, cb, startTime) {
+        return fs$readdir(path, fs$readdirCallback(
+          path, options, cb, startTime
+        ))
+      }
+      : function go$readdir (path, options, cb, startTime) {
+        return fs$readdir(path, options, fs$readdirCallback(
+          path, options, cb, startTime
+        ))
+      }
 
-    function go$readdir$cb (err, files) {
-      if (files && files.sort)
-        files.sort()
+    return go$readdir(path, options, cb)
 
-      if (err && (err.code === 'EMFILE' || err.code === 'ENFILE'))
-        enqueue([go$readdir, [args]])
+    function fs$readdirCallback (path, options, cb, startTime) {
+      return function (err, files) {
+        if (err && (err.code === 'EMFILE' || err.code === 'ENFILE'))
+          enqueue([
+            go$readdir,
+            [path, options, cb],
+            err,
+            startTime || Date.now(),
+            Date.now()
+          ])
+        else {
+          if (files && files.sort)
+            files.sort()
 
-      else {
-        if (typeof cb === 'function')
-          cb.apply(this, arguments)
-        retry()
+          if (typeof cb === 'function')
+            cb.call(this, err, files)
+        }
       }
     }
-  }
-
-  function go$readdir (args) {
-    return fs$readdir.apply(fs, args)
   }
 
   if (process.version.substr(0, 4) === 'v0.8') {
@@ -5630,14 +5819,13 @@ function patch (fs) {
 
     return go$open(path, flags, mode, cb)
 
-    function go$open (path, flags, mode, cb) {
+    function go$open (path, flags, mode, cb, startTime) {
       return fs$open(path, flags, mode, function (err, fd) {
         if (err && (err.code === 'EMFILE' || err.code === 'ENFILE'))
-          enqueue([go$open, [path, flags, mode, cb]])
+          enqueue([go$open, [path, flags, mode, cb], err, startTime || Date.now(), Date.now()])
         else {
           if (typeof cb === 'function')
             cb.apply(this, arguments)
-          retry()
         }
       })
     }
@@ -5649,13 +5837,79 @@ function patch (fs) {
 function enqueue (elem) {
   debug('ENQUEUE', elem[0].name, elem[1])
   fs[gracefulQueue].push(elem)
+  retry()
+}
+
+// keep track of the timeout between retry() calls
+var retryTimer
+
+// reset the startTime and lastTime to now
+// this resets the start of the 60 second overall timeout as well as the
+// delay between attempts so that we'll retry these jobs sooner
+function resetQueue () {
+  var now = Date.now()
+  for (var i = 0; i < fs[gracefulQueue].length; ++i) {
+    // entries that are only a length of 2 are from an older version, don't
+    // bother modifying those since they'll be retried anyway.
+    if (fs[gracefulQueue][i].length > 2) {
+      fs[gracefulQueue][i][3] = now // startTime
+      fs[gracefulQueue][i][4] = now // lastTime
+    }
+  }
+  // call retry to make sure we're actively processing the queue
+  retry()
 }
 
 function retry () {
+  // clear the timer and remove it to help prevent unintended concurrency
+  clearTimeout(retryTimer)
+  retryTimer = undefined
+
+  if (fs[gracefulQueue].length === 0)
+    return
+
   var elem = fs[gracefulQueue].shift()
-  if (elem) {
-    debug('RETRY', elem[0].name, elem[1])
-    elem[0].apply(null, elem[1])
+  var fn = elem[0]
+  var args = elem[1]
+  // these items may be unset if they were added by an older graceful-fs
+  var err = elem[2]
+  var startTime = elem[3]
+  var lastTime = elem[4]
+
+  // if we don't have a startTime we have no way of knowing if we've waited
+  // long enough, so go ahead and retry this item now
+  if (startTime === undefined) {
+    debug('RETRY', fn.name, args)
+    fn.apply(null, args)
+  } else if (Date.now() - startTime >= 60000) {
+    // it's been more than 60 seconds total, bail now
+    debug('TIMEOUT', fn.name, args)
+    var cb = args.pop()
+    if (typeof cb === 'function')
+      cb.call(null, err)
+  } else {
+    // the amount of time between the last attempt and right now
+    var sinceAttempt = Date.now() - lastTime
+    // the amount of time between when we first tried, and when we last tried
+    // rounded up to at least 1
+    var sinceStart = Math.max(lastTime - startTime, 1)
+    // backoff. wait longer than the total time we've been retrying, but only
+    // up to a maximum of 100ms
+    var desiredDelay = Math.min(sinceStart * 1.2, 100)
+    // it's been long enough since the last retry, do it again
+    if (sinceAttempt >= desiredDelay) {
+      debug('RETRY', fn.name, args)
+      fn.apply(null, args.concat([startTime]))
+    } else {
+      // if we can't do this job yet, push it to the end of the queue
+      // and let the next iteration check again
+      fs[gracefulQueue].push(elem)
+    }
+  }
+
+  // schedule our next run if one isn't already scheduled
+  if (retryTimer === undefined) {
+    retryTimer = setTimeout(retry, 0)
   }
 }
 
@@ -5665,7 +5919,7 @@ function retry () {
 /***/ 3086:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-var Stream = __nccwpck_require__(2413).Stream
+var Stream = (__nccwpck_require__(2781).Stream)
 
 module.exports = legacy
 
@@ -5790,7 +6044,7 @@ function legacy (fs) {
 /***/ 263:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-var constants = __nccwpck_require__(7619)
+var constants = __nccwpck_require__(2057)
 
 var origCwd = process.cwd
 var cwd = null
@@ -5863,13 +6117,13 @@ function patch (fs) {
   fs.lstatSync = statFixSync(fs.lstatSync)
 
   // if lchmod/lchown do not exist, then make them no-ops
-  if (!fs.lchmod) {
+  if (fs.chmod && !fs.lchmod) {
     fs.lchmod = function (path, mode, cb) {
       if (cb) process.nextTick(cb)
     }
     fs.lchmodSync = function () {}
   }
-  if (!fs.lchown) {
+  if (fs.chown && !fs.lchown) {
     fs.lchown = function (path, uid, gid, cb) {
       if (cb) process.nextTick(cb)
     }
@@ -5886,32 +6140,38 @@ function patch (fs) {
   // CPU to a busy looping process, which can cause the program causing the lock
   // contention to be starved of CPU by node, so the contention doesn't resolve.
   if (platform === "win32") {
-    fs.rename = (function (fs$rename) { return function (from, to, cb) {
-      var start = Date.now()
-      var backoff = 0;
-      fs$rename(from, to, function CB (er) {
-        if (er
-            && (er.code === "EACCES" || er.code === "EPERM")
-            && Date.now() - start < 60000) {
-          setTimeout(function() {
-            fs.stat(to, function (stater, st) {
-              if (stater && stater.code === "ENOENT")
-                fs$rename(from, to, CB);
-              else
-                cb(er)
-            })
-          }, backoff)
-          if (backoff < 100)
-            backoff += 10;
-          return;
-        }
-        if (cb) cb(er)
-      })
-    }})(fs.rename)
+    fs.rename = typeof fs.rename !== 'function' ? fs.rename
+    : (function (fs$rename) {
+      function rename (from, to, cb) {
+        var start = Date.now()
+        var backoff = 0;
+        fs$rename(from, to, function CB (er) {
+          if (er
+              && (er.code === "EACCES" || er.code === "EPERM")
+              && Date.now() - start < 60000) {
+            setTimeout(function() {
+              fs.stat(to, function (stater, st) {
+                if (stater && stater.code === "ENOENT")
+                  fs$rename(from, to, CB);
+                else
+                  cb(er)
+              })
+            }, backoff)
+            if (backoff < 100)
+              backoff += 10;
+            return;
+          }
+          if (cb) cb(er)
+        })
+      }
+      if (Object.setPrototypeOf) Object.setPrototypeOf(rename, fs$rename)
+      return rename
+    })(fs.rename)
   }
 
   // if read() returns EAGAIN, then just try it again.
-  fs.read = (function (fs$read) {
+  fs.read = typeof fs.read !== 'function' ? fs.read
+  : (function (fs$read) {
     function read (fd, buffer, offset, length, position, callback_) {
       var callback
       if (callback_ && typeof callback_ === 'function') {
@@ -5932,7 +6192,8 @@ function patch (fs) {
     return read
   })(fs.read)
 
-  fs.readSync = (function (fs$readSync) { return function (fd, buffer, offset, length, position) {
+  fs.readSync = typeof fs.readSync !== 'function' ? fs.readSync
+  : (function (fs$readSync) { return function (fd, buffer, offset, length, position) {
     var eagCounter = 0
     while (true) {
       try {
@@ -5991,7 +6252,7 @@ function patch (fs) {
   }
 
   function patchLutimes (fs) {
-    if (constants.hasOwnProperty("O_SYMLINK")) {
+    if (constants.hasOwnProperty("O_SYMLINK") && fs.futimes) {
       fs.lutimes = function (path, at, mt, cb) {
         fs.open(path, constants.O_SYMLINK, function (er, fd) {
           if (er) {
@@ -6025,7 +6286,7 @@ function patch (fs) {
         return ret
       }
 
-    } else {
+    } else if (fs.futimes) {
       fs.lutimes = function (_a, _b, _c, cb) { if (cb) process.nextTick(cb) }
       fs.lutimesSync = function () {}
     }
@@ -6102,8 +6363,10 @@ function patch (fs) {
     return function (target, options) {
       var stats = options ? orig.call(fs, target, options)
         : orig.call(fs, target)
-      if (stats.uid < 0) stats.uid += 0x100000000
-      if (stats.gid < 0) stats.gid += 0x100000000
+      if (stats) {
+        if (stats.uid < 0) stats.uid += 0x100000000
+        if (stats.gid < 0) stats.gid += 0x100000000
+      }
       return stats;
     }
   }
@@ -6147,7 +6410,7 @@ let _fs
 try {
   _fs = __nccwpck_require__(7758)
 } catch (_) {
-  _fs = __nccwpck_require__(5747)
+  _fs = __nccwpck_require__(7147)
 }
 const universalify = __nccwpck_require__(9046)
 const { stringify, stripBom } = __nccwpck_require__(5902)
@@ -7873,13 +8136,13 @@ module.exports = __nccwpck_require__(4219);
 "use strict";
 
 
-var net = __nccwpck_require__(1631);
-var tls = __nccwpck_require__(4016);
-var http = __nccwpck_require__(8605);
-var https = __nccwpck_require__(7211);
-var events = __nccwpck_require__(8614);
-var assert = __nccwpck_require__(2357);
-var util = __nccwpck_require__(1669);
+var net = __nccwpck_require__(1808);
+var tls = __nccwpck_require__(4404);
+var http = __nccwpck_require__(3685);
+var https = __nccwpck_require__(5687);
+var events = __nccwpck_require__(2361);
+var assert = __nccwpck_require__(9491);
+var util = __nccwpck_require__(3837);
 
 
 exports.httpOverHttp = httpOverHttp;
@@ -8210,7 +8473,7 @@ module.exports = bytesToUuid;
 // Unique ID creation requires a high quality random # generator.  In node.js
 // this is pretty straight-forward - we use the crypto API.
 
-var crypto = __nccwpck_require__(6417);
+var crypto = __nccwpck_require__(6113);
 
 module.exports = function nodeRNG() {
   return crypto.randomBytes(16);
@@ -8255,7 +8518,189 @@ module.exports = v4;
 
 /***/ }),
 
-/***/ 2357:
+/***/ 399:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core = __importStar(__nccwpck_require__(2186));
+const tc = __importStar(__nccwpck_require__(7784));
+const exec = __importStar(__nccwpck_require__(1514));
+const path = __importStar(__nccwpck_require__(1017));
+const fs = __importStar(__nccwpck_require__(7147));
+const fse = __importStar(__nccwpck_require__(5630));
+const os = __importStar(__nccwpck_require__(2037));
+const CMDLINE_TOOLS_VERSION = '6.0';
+const COMMANDLINE_TOOLS_VERSION = '8092744';
+const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
+const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
+const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
+const HOME = os.homedir();
+const ANDROID_HOME_DIR = path.join(HOME, '.android');
+const ANDROID_HOME_SDK_DIR = path.join(ANDROID_HOME_DIR, 'sdk');
+let ANDROID_SDK_ROOT = process.env['ANDROID_SDK_ROOT'] || ANDROID_HOME_SDK_DIR;
+function getSdkManagerPath(cmdToolsVersion) {
+    return path.join(ANDROID_SDK_ROOT, 'cmdline-tools', cmdToolsVersion, 'bin', 'sdkmanager');
+}
+function findPreinstalledSdkManager() {
+    const result = { isFound: false, isCorrectVersion: false, exePath: '' };
+    // First try to find the version defined in CMDLINE_TOOLS_VERSION
+    result.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
+    result.isFound = fs.existsSync(result.exePath);
+    if (result.isFound) {
+        result.isCorrectVersion = true;
+        return result;
+    }
+    // cmdline-tools could have a 'latest' version, but if it was installed 2 years ago
+    // it may not be 'latest' as of today
+    result.exePath = getSdkManagerPath('latest');
+    result.isFound = fs.existsSync(result.exePath);
+    if (result.isFound) {
+        return result;
+    }
+    result.exePath = '';
+    // Find whatever version is available in ANDROID_SDK_ROOT
+    const cmdlineToolsDir = path.join(ANDROID_SDK_ROOT, 'cmdline-tools');
+    const foundVersions = fs.existsSync(cmdlineToolsDir)
+        ? fs.readdirSync(cmdlineToolsDir)
+        : [];
+    const foundVersionsFiltered = foundVersions.filter(obj => '.' !== obj && '..' !== obj);
+    // Sort by desc, to get 2.0 first, before 1.0
+    const foundVersionsSorted = foundVersionsFiltered.sort((a, b) => (a > b ? -1 : 1));
+    for (const version of foundVersionsSorted) {
+        result.exePath = getSdkManagerPath(version);
+        result.isFound = fs.existsSync(result.exePath);
+        if (result.isFound) {
+            return result;
+        }
+    }
+    result.exePath = '';
+    return result;
+}
+function callSdkManager(sdkManager, arg) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const acceptBuffer = Buffer.from(Array(10).fill('y').join('\n'), 'utf8');
+        yield exec.exec(sdkManager, [arg], {
+            input: acceptBuffer
+        });
+    });
+}
+function installSdkManager() {
+    return __awaiter(this, void 0, void 0, function* () {
+        fs.mkdirSync(ANDROID_SDK_ROOT, { recursive: true });
+        // touch $ANDROID_SDK_ROOT/repositories.cfg
+        fs.closeSync(fs.openSync(path.join(ANDROID_SDK_ROOT, 'repositories.cfg'), 'w'));
+        const sdkManager = findPreinstalledSdkManager();
+        if (!sdkManager.isFound) {
+            let cmdlineToolsURL;
+            if (process.platform === 'linux') {
+                cmdlineToolsURL = COMMANDLINE_TOOLS_LIN_URL;
+            }
+            else if (process.platform === 'darwin') {
+                cmdlineToolsURL = COMMANDLINE_TOOLS_MAC_URL;
+            }
+            else if (process.platform === 'win32') {
+                cmdlineToolsURL = COMMANDLINE_TOOLS_WIN_URL;
+            }
+            else {
+                core.error(`Unsupported platform: ${process.platform}`);
+                return '';
+            }
+            const cmdlineToolsZip = yield tc.downloadTool(cmdlineToolsURL);
+            const cmdlineToolsExtractedLocation = yield tc.extractZip(cmdlineToolsZip);
+            // Move cmdline-tools to where it would be if it was installed through sdkmanager
+            // Will allow calling sdkmanager without --sdk_root='..' argument
+            const desiredLocation = path.join(ANDROID_SDK_ROOT, 'cmdline-tools', CMDLINE_TOOLS_VERSION);
+            // Create parent directory
+            fs.mkdirSync(path.dirname(desiredLocation), { recursive: true });
+            // Make sure we don't have leftover target directory (happens sometimes...)
+            if (fs.existsSync(desiredLocation))
+                fse.removeSync(desiredLocation);
+            // @TODO: use io.mv instead of fs-extra.moveSync once following issue is resolved:
+            // https://github.com/actions/toolkit/issues/706
+            fse.moveSync(path.join(cmdlineToolsExtractedLocation, 'cmdline-tools'), desiredLocation);
+            fse.removeSync(cmdlineToolsExtractedLocation);
+            sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
+            sdkManager.isCorrectVersion = true;
+        }
+        if (!sdkManager.isCorrectVersion) {
+            yield callSdkManager(sdkManager.exePath, `cmdline-tools;${CMDLINE_TOOLS_VERSION}`);
+            sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
+        }
+        return sdkManager.exePath;
+    });
+}
+function run() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if ('win16' === process.env['ImageOS']) {
+            if (-1 !== ANDROID_SDK_ROOT.indexOf(' ')) {
+                // On Windows2016, Android SDK is installed to Program Files,
+                // and it doesn't really work..
+                // C:\windows\system32\cmd.exe /D /S /C ""C:\Program Files (x86)\Android\android-sdk\cmdline-tools\3.0\bin\sdkmanager.bat" --licenses"
+                // Error: Could not find or load main class Files
+                const newSDKLocation = ANDROID_SDK_ROOT.replace(/\s/gi, '-');
+                core.debug(`moving ${ANDROID_SDK_ROOT} to ${newSDKLocation}`);
+                fs.mkdirSync(path.dirname(newSDKLocation), { recursive: true });
+                // intentionally using fs.renameSync,
+                // because it doesn't move across drives
+                fs.renameSync(ANDROID_SDK_ROOT, newSDKLocation);
+                ANDROID_SDK_ROOT = newSDKLocation;
+            }
+        }
+        const sdkManager = yield installSdkManager();
+        core.debug(`sdkmanager installed to: ${sdkManager}`);
+        yield callSdkManager(sdkManager, '--licenses');
+        yield callSdkManager(sdkManager, 'tools');
+        yield callSdkManager(sdkManager, 'platform-tools');
+        core.setOutput('ANDROID_COMMANDLINE_TOOLS_VERSION', COMMANDLINE_TOOLS_VERSION);
+        core.exportVariable('ANDROID_HOME', ANDROID_SDK_ROOT);
+        core.exportVariable('ANDROID_SDK_ROOT', ANDROID_SDK_ROOT);
+        core.addPath(path.dirname(sdkManager));
+        core.addPath(path.join(ANDROID_SDK_ROOT, 'platform-tools'));
+        core.debug('add matchers');
+        // eslint-disable-next-line no-console
+        console.log(`##[add-matcher]${path.join(__dirname, '..', 'matchers.json')}`);
+    });
+}
+run();
+
+
+/***/ }),
+
+/***/ 9491:
 /***/ ((module) => {
 
 "use strict";
@@ -8263,7 +8708,7 @@ module.exports = require("assert");
 
 /***/ }),
 
-/***/ 3129:
+/***/ 2081:
 /***/ ((module) => {
 
 "use strict";
@@ -8271,7 +8716,7 @@ module.exports = require("child_process");
 
 /***/ }),
 
-/***/ 7619:
+/***/ 2057:
 /***/ ((module) => {
 
 "use strict";
@@ -8279,7 +8724,7 @@ module.exports = require("constants");
 
 /***/ }),
 
-/***/ 6417:
+/***/ 6113:
 /***/ ((module) => {
 
 "use strict";
@@ -8287,7 +8732,7 @@ module.exports = require("crypto");
 
 /***/ }),
 
-/***/ 8614:
+/***/ 2361:
 /***/ ((module) => {
 
 "use strict";
@@ -8295,7 +8740,7 @@ module.exports = require("events");
 
 /***/ }),
 
-/***/ 5747:
+/***/ 7147:
 /***/ ((module) => {
 
 "use strict";
@@ -8303,7 +8748,7 @@ module.exports = require("fs");
 
 /***/ }),
 
-/***/ 8605:
+/***/ 3685:
 /***/ ((module) => {
 
 "use strict";
@@ -8311,7 +8756,7 @@ module.exports = require("http");
 
 /***/ }),
 
-/***/ 7211:
+/***/ 5687:
 /***/ ((module) => {
 
 "use strict";
@@ -8319,7 +8764,7 @@ module.exports = require("https");
 
 /***/ }),
 
-/***/ 1631:
+/***/ 1808:
 /***/ ((module) => {
 
 "use strict";
@@ -8327,7 +8772,7 @@ module.exports = require("net");
 
 /***/ }),
 
-/***/ 2087:
+/***/ 2037:
 /***/ ((module) => {
 
 "use strict";
@@ -8335,7 +8780,7 @@ module.exports = require("os");
 
 /***/ }),
 
-/***/ 5622:
+/***/ 1017:
 /***/ ((module) => {
 
 "use strict";
@@ -8343,7 +8788,7 @@ module.exports = require("path");
 
 /***/ }),
 
-/***/ 2413:
+/***/ 2781:
 /***/ ((module) => {
 
 "use strict";
@@ -8351,7 +8796,7 @@ module.exports = require("stream");
 
 /***/ }),
 
-/***/ 4304:
+/***/ 1576:
 /***/ ((module) => {
 
 "use strict";
@@ -8359,7 +8804,7 @@ module.exports = require("string_decoder");
 
 /***/ }),
 
-/***/ 8213:
+/***/ 9512:
 /***/ ((module) => {
 
 "use strict";
@@ -8367,7 +8812,7 @@ module.exports = require("timers");
 
 /***/ }),
 
-/***/ 4016:
+/***/ 4404:
 /***/ ((module) => {
 
 "use strict";
@@ -8375,7 +8820,7 @@ module.exports = require("tls");
 
 /***/ }),
 
-/***/ 1669:
+/***/ 3837:
 /***/ ((module) => {
 
 "use strict";
@@ -8416,222 +8861,17 @@ module.exports = require("util");
 /******/ 	}
 /******/ 	
 /************************************************************************/
-/******/ 	/* webpack/runtime/compat get default export */
-/******/ 	(() => {
-/******/ 		// getDefaultExport function for compatibility with non-harmony modules
-/******/ 		__nccwpck_require__.n = (module) => {
-/******/ 			var getter = module && module.__esModule ?
-/******/ 				() => (module['default']) :
-/******/ 				() => (module);
-/******/ 			__nccwpck_require__.d(getter, { a: getter });
-/******/ 			return getter;
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/define property getters */
-/******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
-/******/ 		__nccwpck_require__.d = (exports, definition) => {
-/******/ 			for(var key in definition) {
-/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
-/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 				}
-/******/ 			}
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
-/******/ 	(() => {
-/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/make namespace object */
-/******/ 	(() => {
-/******/ 		// define __esModule on exports
-/******/ 		__nccwpck_require__.r = (exports) => {
-/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 			}
-/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 		};
-/******/ 	})();
-/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-__nccwpck_require__.r(__webpack_exports__);
-/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(2186);
-/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__nccwpck_require__.n(_actions_core__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _actions_tool_cache__WEBPACK_IMPORTED_MODULE_1__ = __nccwpck_require__(7784);
-/* harmony import */ var _actions_tool_cache__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__nccwpck_require__.n(_actions_tool_cache__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var _actions_exec__WEBPACK_IMPORTED_MODULE_2__ = __nccwpck_require__(1514);
-/* harmony import */ var _actions_exec__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__nccwpck_require__.n(_actions_exec__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var path__WEBPACK_IMPORTED_MODULE_3__ = __nccwpck_require__(5622);
-/* harmony import */ var path__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__nccwpck_require__.n(path__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_4__ = __nccwpck_require__(5747);
-/* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__nccwpck_require__.n(fs__WEBPACK_IMPORTED_MODULE_4__);
-/* harmony import */ var fs_extra__WEBPACK_IMPORTED_MODULE_5__ = __nccwpck_require__(5630);
-/* harmony import */ var fs_extra__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__nccwpck_require__.n(fs_extra__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var os__WEBPACK_IMPORTED_MODULE_6__ = __nccwpck_require__(2087);
-/* harmony import */ var os__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__nccwpck_require__.n(os__WEBPACK_IMPORTED_MODULE_6__);
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-
-
-
-
-
-
-const CMDLINE_TOOLS_VERSION = '6.0';
-const COMMANDLINE_TOOLS_VERSION = '8092744';
-const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
-const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
-const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${COMMANDLINE_TOOLS_VERSION}_latest.zip`;
-const HOME = os__WEBPACK_IMPORTED_MODULE_6__.homedir();
-const ANDROID_HOME_DIR = path__WEBPACK_IMPORTED_MODULE_3__.join(HOME, '.android');
-const ANDROID_HOME_SDK_DIR = path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_HOME_DIR, 'sdk');
-let ANDROID_SDK_ROOT = process.env['ANDROID_SDK_ROOT'] || ANDROID_HOME_SDK_DIR;
-function getSdkManagerPath(cmdToolsVersion) {
-    return path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_SDK_ROOT, 'cmdline-tools', cmdToolsVersion, 'bin', 'sdkmanager');
-}
-function findPreinstalledSdkManager() {
-    const result = { isFound: false, isCorrectVersion: false, exePath: '' };
-    // First try to find the version defined in CMDLINE_TOOLS_VERSION
-    result.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
-    result.isFound = fs__WEBPACK_IMPORTED_MODULE_4__.existsSync(result.exePath);
-    if (result.isFound) {
-        result.isCorrectVersion = true;
-        return result;
-    }
-    // cmdline-tools could have a 'latest' version, but if it was installed 2 years ago
-    // it may not be 'latest' as of today
-    result.exePath = getSdkManagerPath('latest');
-    result.isFound = fs__WEBPACK_IMPORTED_MODULE_4__.existsSync(result.exePath);
-    if (result.isFound) {
-        return result;
-    }
-    result.exePath = '';
-    // Find whatever version is available in ANDROID_SDK_ROOT
-    const cmdlineToolsDir = path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_SDK_ROOT, 'cmdline-tools');
-    const foundVersions = fs__WEBPACK_IMPORTED_MODULE_4__.existsSync(cmdlineToolsDir)
-        ? fs__WEBPACK_IMPORTED_MODULE_4__.readdirSync(cmdlineToolsDir)
-        : [];
-    const foundVersionsFiltered = foundVersions.filter(obj => '.' !== obj && '..' !== obj);
-    // Sort by desc, to get 2.0 first, before 1.0
-    const foundVersionsSorted = foundVersionsFiltered.sort((a, b) => (a > b ? -1 : 1));
-    for (const version of foundVersionsSorted) {
-        result.exePath = getSdkManagerPath(version);
-        result.isFound = fs__WEBPACK_IMPORTED_MODULE_4__.existsSync(result.exePath);
-        if (result.isFound) {
-            return result;
-        }
-    }
-    result.exePath = '';
-    return result;
-}
-function callSdkManager(sdkManager, arg) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const acceptBuffer = Buffer.from(Array(10).fill('y').join('\n'), 'utf8');
-        yield _actions_exec__WEBPACK_IMPORTED_MODULE_2__.exec(sdkManager, [arg], {
-            input: acceptBuffer
-        });
-    });
-}
-function installSdkManager() {
-    return __awaiter(this, void 0, void 0, function* () {
-        fs__WEBPACK_IMPORTED_MODULE_4__.mkdirSync(ANDROID_SDK_ROOT, { recursive: true });
-        // touch $ANDROID_SDK_ROOT/repositories.cfg
-        fs__WEBPACK_IMPORTED_MODULE_4__.closeSync(fs__WEBPACK_IMPORTED_MODULE_4__.openSync(path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_SDK_ROOT, 'repositories.cfg'), 'w'));
-        const sdkManager = findPreinstalledSdkManager();
-        if (!sdkManager.isFound) {
-            let cmdlineToolsURL;
-            if (process.platform === 'linux') {
-                cmdlineToolsURL = COMMANDLINE_TOOLS_LIN_URL;
-            }
-            else if (process.platform === 'darwin') {
-                cmdlineToolsURL = COMMANDLINE_TOOLS_MAC_URL;
-            }
-            else if (process.platform === 'win32') {
-                cmdlineToolsURL = COMMANDLINE_TOOLS_WIN_URL;
-            }
-            else {
-                _actions_core__WEBPACK_IMPORTED_MODULE_0__.error(`Unsupported platform: ${process.platform}`);
-                return '';
-            }
-            const cmdlineToolsZip = yield _actions_tool_cache__WEBPACK_IMPORTED_MODULE_1__.downloadTool(cmdlineToolsURL);
-            const cmdlineToolsExtractedLocation = yield _actions_tool_cache__WEBPACK_IMPORTED_MODULE_1__.extractZip(cmdlineToolsZip);
-            // Move cmdline-tools to where it would be if it was installed through sdkmanager
-            // Will allow calling sdkmanager without --sdk_root='..' argument
-            const desiredLocation = path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_SDK_ROOT, 'cmdline-tools', CMDLINE_TOOLS_VERSION);
-            // Create parent directory
-            fs__WEBPACK_IMPORTED_MODULE_4__.mkdirSync(path__WEBPACK_IMPORTED_MODULE_3__.dirname(desiredLocation), { recursive: true });
-            // Make sure we don't have leftover target directory (happens sometimes...)
-            if (fs__WEBPACK_IMPORTED_MODULE_4__.existsSync(desiredLocation))
-                fs_extra__WEBPACK_IMPORTED_MODULE_5__.removeSync(desiredLocation);
-            // @TODO: use io.mv instead of fs-extra.moveSync once following issue is resolved:
-            // https://github.com/actions/toolkit/issues/706
-            fs_extra__WEBPACK_IMPORTED_MODULE_5__.moveSync(path__WEBPACK_IMPORTED_MODULE_3__.join(cmdlineToolsExtractedLocation, 'cmdline-tools'), desiredLocation);
-            fs_extra__WEBPACK_IMPORTED_MODULE_5__.removeSync(cmdlineToolsExtractedLocation);
-            sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
-            sdkManager.isCorrectVersion = true;
-        }
-        if (!sdkManager.isCorrectVersion) {
-            yield callSdkManager(sdkManager.exePath, `cmdline-tools;${CMDLINE_TOOLS_VERSION}`);
-            sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION);
-        }
-        return sdkManager.exePath;
-    });
-}
-function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        if ('win16' === process.env['ImageOS']) {
-            if (-1 !== ANDROID_SDK_ROOT.indexOf(' ')) {
-                // On Windows2016, Android SDK is installed to Program Files,
-                // and it doesn't really work..
-                // C:\windows\system32\cmd.exe /D /S /C ""C:\Program Files (x86)\Android\android-sdk\cmdline-tools\3.0\bin\sdkmanager.bat" --licenses"
-                // Error: Could not find or load main class Files
-                const newSDKLocation = ANDROID_SDK_ROOT.replace(/\s/gi, '-');
-                _actions_core__WEBPACK_IMPORTED_MODULE_0__.debug(`moving ${ANDROID_SDK_ROOT} to ${newSDKLocation}`);
-                fs__WEBPACK_IMPORTED_MODULE_4__.mkdirSync(path__WEBPACK_IMPORTED_MODULE_3__.dirname(newSDKLocation), { recursive: true });
-                // intentionally using fs.renameSync,
-                // because it doesn't move across drives
-                fs__WEBPACK_IMPORTED_MODULE_4__.renameSync(ANDROID_SDK_ROOT, newSDKLocation);
-                ANDROID_SDK_ROOT = newSDKLocation;
-            }
-        }
-        const sdkManager = yield installSdkManager();
-        _actions_core__WEBPACK_IMPORTED_MODULE_0__.debug(`sdkmanager installed to: ${sdkManager}`);
-        yield callSdkManager(sdkManager, '--licenses');
-        yield callSdkManager(sdkManager, 'tools');
-        yield callSdkManager(sdkManager, 'platform-tools');
-        _actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput('ANDROID_COMMANDLINE_TOOLS_VERSION', COMMANDLINE_TOOLS_VERSION);
-        _actions_core__WEBPACK_IMPORTED_MODULE_0__.exportVariable('ANDROID_HOME', ANDROID_SDK_ROOT);
-        _actions_core__WEBPACK_IMPORTED_MODULE_0__.exportVariable('ANDROID_SDK_ROOT', ANDROID_SDK_ROOT);
-        _actions_core__WEBPACK_IMPORTED_MODULE_0__.addPath(path__WEBPACK_IMPORTED_MODULE_3__.dirname(sdkManager));
-        _actions_core__WEBPACK_IMPORTED_MODULE_0__.addPath(path__WEBPACK_IMPORTED_MODULE_3__.join(ANDROID_SDK_ROOT, 'platform-tools'));
-        _actions_core__WEBPACK_IMPORTED_MODULE_0__.debug('add matchers');
-        // eslint-disable-next-line no-console
-        console.log(`##[add-matcher]${path__WEBPACK_IMPORTED_MODULE_3__.join(__dirname, '..', 'matchers.json')}`);
-    });
-}
-run();
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(399);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;
