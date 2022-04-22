@@ -23,11 +23,11 @@ jobs:
           - windows-latest
           - macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           repository: daveol/SampleApplication
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           path: ./build/
 

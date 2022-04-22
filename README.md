@@ -14,7 +14,7 @@ See [action.yml](action.yml)
 ## Basic
 ```yaml
 steps:
-- uses: actions/checkout@v2
+- uses: actions/checkout@v3
 
 - name: Set up JDK 1.8
   uses: actions/setup-java@v1
