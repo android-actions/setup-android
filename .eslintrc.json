@@ -44,6 +44,7 @@
       "semi": "off",
       "@typescript-eslint/semi": ["error", "never"],
       "@typescript-eslint/type-annotation-spacing": "error",
+      "i18n-text/no-en": "warn",
       "@typescript-eslint/unbound-method": "error"
     },
     "env": {
