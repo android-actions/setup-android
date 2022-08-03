@@ -8591,9 +8591,9 @@ function findPreinstalledSdkManager() {
     if (result.isFound) {
         const propertiesFile = path.join(ANDROID_SDK_ROOT, 'cmdline-tools', 'latest', 'source.properties');
         if (fs.existsSync(propertiesFile)) {
-            const correctRevisionString = `Pkg.Revision=${CMDLINE_TOOLS_VERSION}`;
-            console.log(correctRevisionString);
-            result.isCorrectVersion = fs.readFileSync(propertiesFile, 'utf8').includes(correctRevisionString);
+            result.isCorrectVersion = fs
+                .readFileSync(propertiesFile, 'utf8')
+                .includes(`Pkg.Revision=${CMDLINE_TOOLS_VERSION}`);
         }
         return result;
     }
