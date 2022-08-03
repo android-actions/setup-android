@@ -27,7 +27,7 @@ jobs:
       - run: npm run build
 
       - name: Check if dist/index.js needs to be rebuilt
-        run: git status dist/index.js | grep "nothing to commit, working tree clean" -q
+        run: diff <(git status dist/index.js --short) <(echo -n "")
 
   format-check:
     runs-on: ubuntu-latest
