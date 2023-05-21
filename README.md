@@ -3,10 +3,10 @@
 ![Build & Test](https://github.com/android-actions/setup-android/workflows/Build%20&%20Test/badge.svg)
 
 This action sets up the Android SDK tools by:
- - Downloading the SDK commandline tools, if the current version (7.0) is not found in either `$ANDROID_SDK_ROOT` or `$HOME/.android/sdk`.
+ - Downloading the SDK commandline tools, if the current version (9.0) is not found in either `$ANDROID_SDK_ROOT` or `$HOME/.android/sdk`.
  - Accepting the SDK licenses.
  - Installing `tools` and `platform-tools`.
- - Adding `platform-tools` (contains adb) and `cmdline-tools/7.0/bin` (contains sdkmanager) to `$PATH`.
+ - Adding `platform-tools` (contains adb) and `cmdline-tools/9.0/bin` (contains sdkmanager) to `$PATH`.
  - Setting up problem [matchers](/matchers.json).
 
 On Windows 2016 runners, this action also checks if `$ANDROID_SDK_ROOT` path contains spaces.
