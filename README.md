@@ -28,7 +28,8 @@ steps:
 - name: Set up JDK 1.8
   uses: actions/setup-java@v3
   with:
-    java-version: 1.8
+    java-version: '17'
+    distribution: 'temurin'
 
 - name: Setup Android SDK
   uses: android-actions/setup-android@v2
