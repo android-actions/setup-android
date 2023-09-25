@@ -3,7 +3,7 @@ author: 'Android-Actions'
 description: 'Setup the Android SDK Tools and add them to the path'
 
 runs:
-  using: 'node16'
+  using: node20
   main: 'dist/index.js'
 
 branding:
