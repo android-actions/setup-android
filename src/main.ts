@@ -6,8 +6,8 @@ import * as fs from 'fs'
 import * as fse from 'fs-extra'
 import * as os from 'os'
 
-const CMDLINE_TOOLS_VERSION = '9.0'
-const COMMANDLINE_TOOLS_VERSION = '9477386'
+const CMDLINE_TOOLS_VERSION = '11.0'
+const COMMANDLINE_TOOLS_VERSION = '10406996'
 
 const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
 const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
