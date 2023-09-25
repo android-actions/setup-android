@@ -32,7 +32,7 @@ steps:
     distribution: 'temurin'
 
 - name: Setup Android SDK
-  uses: android-actions/setup-android@v2
+  uses: android-actions/setup-android@v3
 
 - name: Build SampleApplication
   run: ./gradlew --no-daemon build
