@@ -25,7 +25,7 @@ See [action.yml](action.yml)
 steps:
 - uses: actions/checkout@v3
 
-- name: Set up JDK 1.8
+- name: Set up JDK 17
   uses: actions/setup-java@v3
   with:
     java-version: '17'
