@@ -38,6 +38,15 @@ steps:
   run: ./gradlew --no-daemon build
 ```
 
+## Additional packages
+By default, sdkmanager installs "tools" and "platform-tools" packages. To install additional packages, call sdkmanager manually:
+```yaml
+- name: Setup Android SDK
+  uses: android-actions/setup-android@v3
+
+- run: sdkmanager "ndk;26.1.10909125" "cmake;3.22.1"
+```
+
 ## SDK Version selection
 
 Command line tools are versioned using two variables - short and long.
