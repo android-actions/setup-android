@@ -65,15 +65,15 @@ To install a different version, call setup-android with desired long version as 
 Current cmdline tools version can be found at https://developer.android.com/studio#command-line-tools-only
 
 
-# Android SDK Licences
+# Android SDK Licenses
 
-Android SDK (unsurprisingly) is not public domain software, it comes with a licence.
+Android SDK (unsurprisingly) is not public domain software, it comes with a license.
 
-Input parameter `accept-android-sdk-licenses` decides if Android SDK licences should be agreed to on behalf of the user of this action.
-Default option is 'yes', because otherwise SDK is unusable until said licences are agreed to.
+Input parameter `accept-android-sdk-licenses` decides if Android SDK licenses should be agreed to on behalf of the user of this action.
+Default option is 'yes', because otherwise SDK is unusable until said licenses are agreed to.
 
-Licences are quite long, to prevent a wall of text in the action output, licences can be agreed to silently.
-Input parameter `log-accepted-android-sdk-licenses` controls whether licence texts should be printed or omitted from the text output. Defaults to 'true'.
+licenses are quite long, to prevent a wall of text in the action output, licenses can be agreed to silently.
+Input parameter `log-accepted-android-sdk-licenses` controls whether license texts should be printed or omitted from the text output. Defaults to 'true'.
 
 # Thanks
 Based on the project [android-problem-matchers-action](https://github.com/jonasb/android-problem-matchers-action) from [@jonasb](https://github.com/jonasb)

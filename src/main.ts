@@ -149,7 +149,7 @@ async function run(): Promise<void> {
   const sdkManagerExe = await installSdkManager()
 
   if (core.getBooleanInput('accept-android-sdk-licenses')) {
-    core.info('Accepting Android SDK licences')
+    core.info('Accepting Android SDK licenses')
     await callSdkManager(
       sdkManagerExe,
       '--licenses',

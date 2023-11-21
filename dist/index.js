@@ -28266,7 +28266,7 @@ function run() {
         }
         const sdkManagerExe = yield installSdkManager();
         if (core.getBooleanInput('accept-android-sdk-licenses')) {
-            core.info('Accepting Android SDK licences');
+            core.info('Accepting Android SDK licenses');
             yield callSdkManager(sdkManagerExe, '--licenses', core.getBooleanInput('log-accepted-android-sdk-licenses'));
         }
         yield callSdkManager(sdkManagerExe, 'tools');
