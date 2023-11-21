@@ -59,6 +59,7 @@ jobs:
 
   runSdkManager:
     runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} - ${{ matrix.cmdline-tools-version }}
     strategy:
       fail-fast: false
       matrix:
@@ -89,6 +90,8 @@ jobs:
       - run: node dist/index.js
         env:
           INPUT_CMDLINE-TOOLS-VERSION: ${{ matrix.cmdline-tools-version }}
+          INPUT_ACCEPT-ANDROID-SDK-LICENSES: 'true'
+          INPUT_LOG-ACCEPTED-ANDROID-SDK-LICENSES: 'false'
 
       - run: sdkmanager --list
 

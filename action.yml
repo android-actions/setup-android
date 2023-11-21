@@ -8,6 +8,16 @@ inputs:
     required: false
     default: '10406996'
 
+  accept-android-sdk-licenses:
+    description: 'Android SDK is usable only after the licence agreement. Should setup-android agree to the licences, provided by "sdkmanager --licenses"'
+    required: false
+    default: 'true'
+
+  log-accepted-android-sdk-licenses:
+    description: 'Should accepted licences be logged. If not, accepted licences will be accepted silently'
+    required: false
+    default: 'true'
+
 runs:
   using: node20
   main: 'dist/index.js'

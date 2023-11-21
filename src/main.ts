@@ -38,10 +38,15 @@ const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/comm
 const ANDROID_HOME_SDK_DIR = path.join(os.homedir(), '.android', 'sdk')
 let ANDROID_SDK_ROOT = process.env['ANDROID_SDK_ROOT'] || ANDROID_HOME_SDK_DIR
 
-async function callSdkManager(sdkManager: string, arg: string): Promise<void> {
+async function callSdkManager(
+  sdkManager: string,
+  arg: string,
+  printOutput: Boolean = true
+): Promise<void> {
   const acceptBuffer = Buffer.from(Array(10).fill('y').join('\n'), 'utf8')
   await exec.exec(sdkManager, [arg], {
-    input: acceptBuffer
+    input: acceptBuffer,
+    silent: !printOutput
   })
 }
 
@@ -142,7 +147,15 @@ async function run(): Promise<void> {
   }
 
   const sdkManagerExe = await installSdkManager()
-  await callSdkManager(sdkManagerExe, '--licenses')
+
+  if (core.getBooleanInput('accept-android-sdk-licenses')) {
+    core.info('Accepting Android SDK licences')
+    await callSdkManager(
+      sdkManagerExe,
+      '--licenses',
+      core.getBooleanInput('log-accepted-android-sdk-licenses')
+    )
+  }
   await callSdkManager(sdkManagerExe, 'tools')
   await callSdkManager(sdkManagerExe, 'platform-tools')
 

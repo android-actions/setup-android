@@ -28183,11 +28183,12 @@ const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/comm
 const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${VERSION_LONG}_latest.zip`;
 const ANDROID_HOME_SDK_DIR = path.join(os.homedir(), '.android', 'sdk');
 let ANDROID_SDK_ROOT = process.env['ANDROID_SDK_ROOT'] || ANDROID_HOME_SDK_DIR;
-function callSdkManager(sdkManager, arg) {
+function callSdkManager(sdkManager, arg, printOutput = true) {
     return __awaiter(this, void 0, void 0, function* () {
         const acceptBuffer = Buffer.from(Array(10).fill('y').join('\n'), 'utf8');
         yield exec.exec(sdkManager, [arg], {
-            input: acceptBuffer
+            input: acceptBuffer,
+            silent: !printOutput
         });
     });
 }
@@ -28264,7 +28265,10 @@ function run() {
             }
         }
         const sdkManagerExe = yield installSdkManager();
-        yield callSdkManager(sdkManagerExe, '--licenses');
+        if (core.getBooleanInput('accept-android-sdk-licenses')) {
+            core.info('Accepting Android SDK licences');
+            yield callSdkManager(sdkManagerExe, '--licenses', core.getBooleanInput('log-accepted-android-sdk-licenses'));
+        }
         yield callSdkManager(sdkManagerExe, 'tools');
         yield callSdkManager(sdkManagerExe, 'platform-tools');
         core.setOutput('ANDROID_COMMANDLINE_TOOLS_VERSION', VERSION_LONG);
