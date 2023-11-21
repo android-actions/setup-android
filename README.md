@@ -23,7 +23,7 @@ See [action.yml](action.yml)
 ## Basic
 ```yaml
 steps:
-- uses: actions/checkout@v3
+- uses: actions/checkout@v4
 
 - name: Set up JDK 17
   uses: actions/setup-java@v3

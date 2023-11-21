@@ -15,7 +15,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup node 20
         uses: actions/setup-node@v3
@@ -32,7 +32,7 @@ jobs:
   format-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup node 20
         uses: actions/setup-node@v3
@@ -46,7 +46,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup node 20
         uses: actions/setup-node@v3
@@ -65,7 +65,7 @@ jobs:
         os: [ ubuntu-20.04, ubuntu-22.04, macos-11, macos-12, macos-13, windows-2019, windows-2022 ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup node 20
         uses: actions/setup-node@v3
@@ -90,7 +90,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup node 20
         uses: actions/setup-node@v3
