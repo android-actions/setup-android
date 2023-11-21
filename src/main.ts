@@ -3,91 +3,40 @@ import * as tc from '@actions/tool-cache'
 import * as exec from '@actions/exec'
 import * as path from 'path'
 import * as fs from 'fs'
-import * as fse from 'fs-extra'
 import * as os from 'os'
 
-const CMDLINE_TOOLS_VERSION = '11.0'
-const COMMANDLINE_TOOLS_VERSION = '10406996'
+function getVersionShort(versionLong: string): string {
+  switch (versionLong) {
+    case '10406996':
+      return '11.0'
+    case '9862592':
+      return '10.0'
+    case '9477386':
+      return '9.0'
+    case '9123335':
+      return '8.0'
+    case '8512546':
+      return '7.0'
+    default:
+      return versionLong
+  }
+}
 
-const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
-const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
-const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${COMMANDLINE_TOOLS_VERSION}_latest.zip`
+const VERSION_LONG = core.getInput('cmdline-tools-version', {
+  trimWhitespace: true
+})
+if (VERSION_LONG.includes('/') || VERSION_LONG.includes('\\')) {
+  core.setFailed('Malformed cmdline-tools-version!')
+  throw new Error('Malformed cmdline-tools-version!')
+}
+const VERSION_SHORT = getVersionShort(VERSION_LONG)
 
-const HOME = os.homedir()
-const ANDROID_HOME_DIR = path.join(HOME, '.android')
-const ANDROID_HOME_SDK_DIR = path.join(ANDROID_HOME_DIR, 'sdk')
+const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${VERSION_LONG}_latest.zip`
+const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${VERSION_LONG}_latest.zip`
+const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${VERSION_LONG}_latest.zip`
+
+const ANDROID_HOME_SDK_DIR = path.join(os.homedir(), '.android', 'sdk')
 let ANDROID_SDK_ROOT = process.env['ANDROID_SDK_ROOT'] || ANDROID_HOME_SDK_DIR
-
-function getSdkManagerPath(cmdToolsVersion: string): string {
-  return path.join(
-    ANDROID_SDK_ROOT,
-    'cmdline-tools',
-    cmdToolsVersion,
-    'bin',
-    'sdkmanager'
-  )
-}
-
-function findPreinstalledSdkManager(): {
-  isFound: boolean
-  isCorrectVersion: boolean
-  exePath: string
-} {
-  const result = {isFound: false, isCorrectVersion: false, exePath: ''}
-
-  // First try to find the version defined in CMDLINE_TOOLS_VERSION
-  result.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION)
-  result.isFound = fs.existsSync(result.exePath)
-  if (result.isFound) {
-    result.isCorrectVersion = true
-    return result
-  }
-
-  // cmdline-tools could have a 'latest' version, but if it was installed 2 years ago
-  // it may not be 'latest' as of today
-  result.exePath = getSdkManagerPath('latest')
-  result.isFound = fs.existsSync(result.exePath)
-  if (result.isFound) {
-    const propertiesFile = path.join(
-      ANDROID_SDK_ROOT,
-      'cmdline-tools',
-      'latest',
-      'source.properties'
-    )
-    if (fs.existsSync(propertiesFile)) {
-      result.isCorrectVersion = fs
-        .readFileSync(propertiesFile, 'utf8')
-        .includes(`Pkg.Revision=${CMDLINE_TOOLS_VERSION}`)
-    }
-    return result
-  }
-  result.exePath = ''
-
-  // Find whatever version is available in ANDROID_SDK_ROOT
-  const cmdlineToolsDir = path.join(ANDROID_SDK_ROOT, 'cmdline-tools')
-  const foundVersions: string[] = fs.existsSync(cmdlineToolsDir)
-    ? fs.readdirSync(cmdlineToolsDir)
-    : []
-  const foundVersionsFiltered: string[] = foundVersions.filter(
-    obj => '.' !== obj && '..' !== obj
-  )
-
-  // Sort by desc, to get 2.0 first, before 1.0
-  const foundVersionsSorted: string[] = foundVersionsFiltered.sort(
-    (a: string, b: string) => (a > b ? -1 : 1)
-  )
-
-  for (const version of foundVersionsSorted) {
-    result.exePath = getSdkManagerPath(version)
-    result.isFound = fs.existsSync(result.exePath)
-    if (result.isFound) {
-      return result
-    }
-  }
-
-  result.exePath = ''
-  return result
-}
 
 async function callSdkManager(sdkManager: string, arg: string): Promise<void> {
   const acceptBuffer = Buffer.from(Array(10).fill('y').join('\n'), 'utf8')
@@ -97,15 +46,33 @@ async function callSdkManager(sdkManager: string, arg: string): Promise<void> {
 }
 
 async function installSdkManager(): Promise<string> {
-  fs.mkdirSync(ANDROID_SDK_ROOT, {recursive: true})
+  const cmdlineTools = path.join(ANDROID_SDK_ROOT, 'cmdline-tools', VERSION_SHORT)
+  let sdkManagerExe = path.join(cmdlineTools, 'bin', 'sdkmanager')
 
-  // touch $ANDROID_SDK_ROOT/repositories.cfg
-  fs.closeSync(
-    fs.openSync(path.join(ANDROID_SDK_ROOT, 'repositories.cfg'), 'w')
-  )
+  if (!fs.existsSync(sdkManagerExe)) {
+    const latestCmdlineTools = path.join(ANDROID_SDK_ROOT, 'cmdline-tools', 'latest')
+    const sourcePropertiesFile = path.join(latestCmdlineTools, 'source.properties')
+    const latestSdkManagerExe = path.join(latestCmdlineTools, 'bin', 'sdkmanager')
+    if (
+      fs.existsSync(latestCmdlineTools) &&
+      fs.existsSync(sourcePropertiesFile) &&
+      fs.existsSync(latestSdkManagerExe)
+    ) {
+      const sourceProperties = fs.readFileSync(sourcePropertiesFile)
+      core.info(
+        `Found preinstalled sdkmanager in ${latestCmdlineTools} with following source.properties:`
+      )
+      core.info(sourceProperties.toString())
+      if (sourceProperties.includes(`Pkg.Revision=${VERSION_SHORT}`)) {
+        core.info(`Preinstalled sdkmanager has the correct version`)
+        sdkManagerExe = latestSdkManagerExe
+      } else {
+        core.info(`Wrong version in preinstalled sdkmanager`)
+      }
+    }
+  }
 
-  const sdkManager = findPreinstalledSdkManager()
-  if (!sdkManager.isFound) {
+  if (!fs.existsSync(sdkManagerExe)) {
     let cmdlineToolsURL
     if (process.platform === 'linux') {
       cmdlineToolsURL = COMMANDLINE_TOOLS_LIN_URL
@@ -117,43 +84,25 @@ async function installSdkManager(): Promise<string> {
       core.error(`Unsupported platform: ${process.platform}`)
       return ''
     }
+
+    core.info(`Downloading commandline tools from ${cmdlineToolsURL}`)
     const cmdlineToolsZip = await tc.downloadTool(cmdlineToolsURL)
-    const cmdlineToolsExtractedLocation = await tc.extractZip(cmdlineToolsZip)
 
-    // Move cmdline-tools to where it would be if it was installed through sdkmanager
-    // Will allow calling sdkmanager without --sdk_root='..' argument
-    const desiredLocation = path.join(
-      ANDROID_SDK_ROOT,
-      'cmdline-tools',
-      CMDLINE_TOOLS_VERSION
-    )
-
-    // Create parent directory
-    fs.mkdirSync(path.dirname(desiredLocation), {recursive: true})
+    const extractTo = path.join(ANDROID_SDK_ROOT, 'cmdline-tools')
+    await tc.extractZip(cmdlineToolsZip, extractTo)
 
     // Make sure we don't have leftover target directory (happens sometimes...)
-    if (fs.existsSync(desiredLocation)) fse.removeSync(desiredLocation)
-
-    // @TODO: use io.mv instead of fs-extra.moveSync once following issue is resolved:
-    // https://github.com/actions/toolkit/issues/706
-    fse.moveSync(
-      path.join(cmdlineToolsExtractedLocation, 'cmdline-tools'),
-      desiredLocation
-    )
-    fse.removeSync(cmdlineToolsExtractedLocation)
-
-    sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION)
-    sdkManager.isCorrectVersion = true
+    if (fs.existsSync(cmdlineTools)) {
+      core.info(`Removing leftovers from ${cmdlineTools}`)
+      fs.rmSync(cmdlineTools, {recursive: true})
+    }
+    fs.renameSync(path.join(extractTo, 'cmdline-tools'), cmdlineTools)
   }
 
-  if (!sdkManager.isCorrectVersion) {
-    await callSdkManager(
-      sdkManager.exePath,
-      `cmdline-tools;${CMDLINE_TOOLS_VERSION}`
-    )
-    sdkManager.exePath = getSdkManagerPath(CMDLINE_TOOLS_VERSION)
-  }
-  return sdkManager.exePath
+  // touch $ANDROID_SDK_ROOT/repositories.cfg
+  fs.closeSync(fs.openSync(path.join(ANDROID_SDK_ROOT, 'repositories.cfg'), 'w'))
+  core.debug(`sdkmanager available at: ${sdkManagerExe}`)
+  return sdkManagerExe
 }
 
 async function run(): Promise<void> {
@@ -175,17 +124,16 @@ async function run(): Promise<void> {
     }
   }
 
-  const sdkManager = await installSdkManager()
-  core.debug(`sdkmanager installed to: ${sdkManager}`)
-  await callSdkManager(sdkManager, '--licenses')
-  await callSdkManager(sdkManager, 'tools')
-  await callSdkManager(sdkManager, 'platform-tools')
+  const sdkManagerExe = await installSdkManager()
+  await callSdkManager(sdkManagerExe, '--licenses')
+  await callSdkManager(sdkManagerExe, 'tools')
+  await callSdkManager(sdkManagerExe, 'platform-tools')
 
-  core.setOutput('ANDROID_COMMANDLINE_TOOLS_VERSION', COMMANDLINE_TOOLS_VERSION)
+  core.setOutput('ANDROID_COMMANDLINE_TOOLS_VERSION', VERSION_LONG)
   core.exportVariable('ANDROID_HOME', ANDROID_SDK_ROOT)
   core.exportVariable('ANDROID_SDK_ROOT', ANDROID_SDK_ROOT)
 
-  core.addPath(path.dirname(sdkManager))
+  core.addPath(path.dirname(sdkManagerExe))
   core.addPath(path.join(ANDROID_SDK_ROOT, 'platform-tools'))
 
   core.debug('add matchers')

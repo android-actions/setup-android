@@ -38,6 +38,31 @@ steps:
   run: ./gradlew --no-daemon build
 ```
 
+## SDK Version selection
+
+Command line tools are versioned using two variables - short and long.
+Long one is the build number, used in the zip URL, short one is the human friendly version name.
+
+By default, setup-android installs version 10406996 (short version 11.0).
+
+To install a different version, call setup-android with desired long version as the input parameter `cmdline-tools-version`:
+```yaml
+- name: Setup Android SDK
+  uses: android-actions/setup-android@v3
+  with:
+    cmdline-tools-version: 8512546
+```
+
+#### Version table
+| Short version | Long version |
+| --- | --- |
+| 11.0 | 10406996 |
+| 10.0 | 9862592 |
+| 9.0 | 9477386 |
+| 8.0 | 9123335 |
+| 7.0 | 8512546 |
+
+Current cmdline tools version can be found at https://developer.android.com/studio#command-line-tools-only
 
 # Thanks
 Based on the project [android-problem-matchers-action](https://github.com/jonasb/android-problem-matchers-action) from [@jonasb](https://github.com/jonasb)

@@ -82,6 +82,8 @@ jobs:
       - run: npm run build
 
       - run: node dist/index.js
+        env:
+          INPUT_CMDLINE-TOOLS-VERSION: '10406996'
 
       - run: sdkmanager --list
 

@@ -2,6 +2,12 @@ name: 'Setup Android SDK Tools'
 author: 'Android-Actions'
 description: 'Setup the Android SDK Tools and add them to the path'
 
+inputs:
+  cmdline-tools-version:
+    description: 'cmdline-tools-version. See https://developer.android.com/studio#command-line-tools-only'
+    required: false
+    default: '10406996'
+
 runs:
   using: node20
   main: 'dist/index.js'
