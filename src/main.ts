@@ -46,13 +46,28 @@ async function callSdkManager(sdkManager: string, arg: string): Promise<void> {
 }
 
 async function installSdkManager(): Promise<string> {
-  const cmdlineTools = path.join(ANDROID_SDK_ROOT, 'cmdline-tools', VERSION_SHORT)
+  const cmdlineTools = path.join(
+    ANDROID_SDK_ROOT,
+    'cmdline-tools',
+    VERSION_SHORT
+  )
   let sdkManagerExe = path.join(cmdlineTools, 'bin', 'sdkmanager')
 
   if (!fs.existsSync(sdkManagerExe)) {
-    const latestCmdlineTools = path.join(ANDROID_SDK_ROOT, 'cmdline-tools', 'latest')
-    const sourcePropertiesFile = path.join(latestCmdlineTools, 'source.properties')
-    const latestSdkManagerExe = path.join(latestCmdlineTools, 'bin', 'sdkmanager')
+    const latestCmdlineTools = path.join(
+      ANDROID_SDK_ROOT,
+      'cmdline-tools',
+      'latest'
+    )
+    const sourcePropertiesFile = path.join(
+      latestCmdlineTools,
+      'source.properties'
+    )
+    const latestSdkManagerExe = path.join(
+      latestCmdlineTools,
+      'bin',
+      'sdkmanager'
+    )
     if (
       fs.existsSync(latestCmdlineTools) &&
       fs.existsSync(sourcePropertiesFile) &&
@@ -100,7 +115,9 @@ async function installSdkManager(): Promise<string> {
   }
 
   // touch $ANDROID_SDK_ROOT/repositories.cfg
-  fs.closeSync(fs.openSync(path.join(ANDROID_SDK_ROOT, 'repositories.cfg'), 'w'))
+  fs.closeSync(
+    fs.openSync(path.join(ANDROID_SDK_ROOT, 'repositories.cfg'), 'w')
+  )
   core.debug(`sdkmanager available at: ${sdkManagerExe}`)
   return sdkManagerExe
 }

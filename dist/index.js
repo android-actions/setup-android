@@ -6689,7 +6689,6 @@ function installSdkManager() {
             }
         }
         if (!fs.existsSync(sdkManagerExe)) {
-            core.info('Preinstalled sdkmanager not found.');
             let cmdlineToolsURL;
             if (process.platform === 'linux') {
                 cmdlineToolsURL = COMMANDLINE_TOOLS_LIN_URL;
