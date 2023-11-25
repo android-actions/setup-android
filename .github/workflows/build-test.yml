@@ -93,6 +93,8 @@ jobs:
           INPUT_ACCEPT-ANDROID-SDK-LICENSES: 'true'
           INPUT_LOG-ACCEPTED-ANDROID-SDK-LICENSES: 'false'
 
+      - run: sdkmanager --list_installed
+
       - run: sdkmanager --list
 
   lint:
