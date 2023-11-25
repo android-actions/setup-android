@@ -87,11 +87,10 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - run: node dist/index.js
-        env:
-          INPUT_CMDLINE-TOOLS-VERSION: ${{ matrix.cmdline-tools-version }}
-          INPUT_ACCEPT-ANDROID-SDK-LICENSES: 'true'
-          INPUT_LOG-ACCEPTED-ANDROID-SDK-LICENSES: 'false'
+      - name: Run setup-android
+        uses: ./
+        with:
+          cmdline-tools-version: ${{ matrix.cmdline-tools-version }}
 
       - run: sdkmanager --list_installed
 
