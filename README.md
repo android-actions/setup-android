@@ -39,12 +39,21 @@ steps:
 ```
 
 ## Additional packages
-By default, sdkmanager installs "tools" and "platform-tools" packages. To install additional packages, call sdkmanager manually:
+Input parameter `packages` controls which packages this action will install from Android SDK.
+
+Default value is `tools platform-tools`, supply an empty string to skip installing additional packages.
+
+Additional packages can be installed at a later time by calling sdkmanager manually.
+
 ```yaml
 - name: Setup Android SDK
   uses: android-actions/setup-android@v3
+  with:
+    packages: ''
 
-- run: sdkmanager "ndk;26.1.10909125" "cmake;3.22.1"
+# ...
+
+- run: sdkmanager tools platform-tools
 ```
 
 ## SDK Version selection

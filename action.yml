@@ -18,6 +18,11 @@ inputs:
     required: false
     default: 'true'
 
+  packages:
+    description: 'Additional packages to install'
+    required: false
+    default: 'tools platform-tools'
+
 runs:
   using: node20
   main: 'dist/index.js'

@@ -156,8 +156,20 @@ async function run(): Promise<void> {
       core.getBooleanInput('log-accepted-android-sdk-licenses')
     )
   }
-  await callSdkManager(sdkManagerExe, 'tools')
-  await callSdkManager(sdkManagerExe, 'platform-tools')
+
+  const packages = core
+    .getInput('packages', {required: false})
+    .split(' ')
+    .map(function (str) {
+      return str.trim()
+    })
+    /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+    .filter(function (element, index, array) {
+      return element
+    })
+  for (const pkg of packages) {
+    await callSdkManager(sdkManagerExe, pkg)
+  }
 
   core.setOutput('ANDROID_COMMANDLINE_TOOLS_VERSION', VERSION_LONG)
   core.exportVariable('ANDROID_HOME', ANDROID_SDK_ROOT)

@@ -28269,8 +28269,19 @@ function run() {
             core.info('Accepting Android SDK licenses');
             yield callSdkManager(sdkManagerExe, '--licenses', core.getBooleanInput('log-accepted-android-sdk-licenses'));
         }
-        yield callSdkManager(sdkManagerExe, 'tools');
-        yield callSdkManager(sdkManagerExe, 'platform-tools');
+        const packages = core
+            .getInput('packages', { required: false })
+            .split(' ')
+            .map(function (str) {
+            return str.trim();
+        })
+            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+            .filter(function (element, index, array) {
+            return element;
+        });
+        for (const pkg of packages) {
+            yield callSdkManager(sdkManagerExe, pkg);
+        }
         core.setOutput('ANDROID_COMMANDLINE_TOOLS_VERSION', VERSION_LONG);
         core.exportVariable('ANDROID_HOME', ANDROID_SDK_ROOT);
         core.exportVariable('ANDROID_SDK_ROOT', ANDROID_SDK_ROOT);
