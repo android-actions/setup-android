@@ -76,7 +76,7 @@ Current cmdline tools version can be found at https://developer.android.com/stud
 
 # Android SDK Licenses
 
-Android SDK (unsurprisingly) is not public domain software, it comes with a license.
+Android SDK is not public domain software, it comes with a license.
 
 Input parameter `accept-android-sdk-licenses` decides if Android SDK licenses should be agreed to on behalf of the user of this action.
 Default option is 'yes', because otherwise SDK is unusable until said licenses are agreed to.
