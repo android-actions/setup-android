@@ -1,14 +1,7 @@
 name: Run Android build
 
 on:
-  pull_request:
-    paths:
-      - 'dist/**.js'
-      - '.github/*.json'
   push:
-    branches:
-      - main
-      - releases/*
     paths:
       - 'dist/**.js'
       - '.github/*.json'
