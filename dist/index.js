@@ -28824,6 +28824,8 @@ const fs = __importStar(__nccwpck_require__(7147));
 const os = __importStar(__nccwpck_require__(2037));
 function getVersionShort(versionLong) {
     switch (versionLong) {
+        case '11076708':
+            return '12.0';
         case '10406996':
             return '11.0';
         case '9862592':
