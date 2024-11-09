@@ -3,10 +3,10 @@
 ![Build & Test](https://github.com/android-actions/setup-android/workflows/Build%20&%20Test/badge.svg)
 
 This action sets up the Android SDK tools by:
- - Downloading the SDK commandline tools, if the current version (11.0) is not found in either `$ANDROID_SDK_ROOT` or `$HOME/.android/sdk`.
+ - Downloading the SDK commandline tools, if the current version (16.0) is not found in either `$ANDROID_SDK_ROOT` or `$HOME/.android/sdk`.
  - Accepting the SDK licenses.
  - Installing `tools` and `platform-tools`.
- - Adding `platform-tools` (contains adb) and `cmdline-tools/11.0/bin` (contains sdkmanager) to `$PATH`.
+ - Adding `platform-tools` (contains adb) and `cmdline-tools/16.0/bin` (contains sdkmanager) to `$PATH`.
  - Setting up problem [matchers](/matchers.json).
 
 On Windows 2016 runners, this action also checks if `$ANDROID_SDK_ROOT` path contains spaces.
@@ -61,7 +61,7 @@ Additional packages can be installed at a later time by calling sdkmanager manua
 Command line tools are versioned using two variables - short and long.
 Long one is the build number, used in the zip URL, short one is the human friendly version name.
 
-By default, setup-android installs version 12266719 (short version 11.0).
+By default, setup-android installs version 12266719 (short version 16.0).
 
 To install a different version, call setup-android with desired long version as the input parameter `cmdline-tools-version`:
 ```yaml
