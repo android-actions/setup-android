@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "es20223
+    "moduleResolution": "bundler",
+    "lib": [
+      "ES20"
+    ],
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "strict": false,
+    "esModuleInterop": false,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": false
+    "declaration": false
+    "declarationMap": false
+    "sourceMap": false
