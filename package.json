@@ -40,7 +40,7 @@
     "globals": "^17.4.0",
     "jest": "^30.3.0",
     "jest-circus": "^30.3.0",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.2.0",
     "prettier": "^3.3.2",
     "ts-jest": "^29.1.5",
     "typescript": "^5.9.3"
