@@ -21,7 +21,7 @@ inputs:
   packages:
     description: 'Additional packages to install'
     required: false
-    default: 'tools platform-tools'
+    default: 'platform-tools'
 
 runs:
   using: node24

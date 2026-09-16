@@ -22422,6 +22422,9 @@ function debug(message) {
 function error(message, properties = {}) {
   issueCommand("error", toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
+function warning(message, properties = {}) {
+  issueCommand("warning", toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+}
 function info(message) {
   process.stdout.write(message + os5.EOL);
 }
@@ -22814,6 +22817,12 @@ async function run() {
     return str.trim();
   }).filter(function(element, index, array) {
     return element;
+  }).filter(function(pkg) {
+    if (pkg === "tools") {
+      warning("Skipping deprecated package 'tools', it is no longer available in the Android SDK repository. The command line tools installed by this action replace it, see https://developer.android.com/tools#tools-sdk");
+      return false;
+    }
+    return true;
   });
   for (const pkg of packages) {
     await callSdkManager(sdkManagerExe, pkg);
