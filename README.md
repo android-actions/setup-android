@@ -5,7 +5,7 @@
 This action sets up the Android SDK tools by:
  - Downloading the SDK commandline tools, if the current version (16.0) is not found in either `$ANDROID_SDK_ROOT` or `$HOME/.android/sdk`.
  - Accepting the SDK licenses.
- - Installing `tools` and `platform-tools`.
+ - Installing `platform-tools`.
  - Adding `platform-tools` (contains adb) and `cmdline-tools/16.0/bin` (contains sdkmanager) to `$PATH`.
  - Setting up problem [matchers](/matchers.json).
 
@@ -41,7 +41,7 @@ steps:
 ## Additional packages
 Input parameter `packages` controls which packages this action will install from Android SDK.
 
-Default value is `tools platform-tools`, supply an empty string to skip installing additional packages.
+Default value is `platform-tools`, supply an empty string to skip installing additional packages.
 
 Additional packages can be installed at a later time by calling sdkmanager manually.
 
@@ -53,8 +53,32 @@ Additional packages can be installed at a later time by calling sdkmanager manua
 
 # ...
 
-- run: sdkmanager tools platform-tools
+- run: sdkmanager platform-tools
 ```
+
+## The deprecated `tools` package
+
+Google no longer serves the `tools` package, see [tools#tools-sdk](https://developer.android.com/tools#tools-sdk).
+Asking for it fails with `Failed to find package 'tools'`, so it is no longer part of the default value of `packages`.
+If it is requested explicitly, this action skips it with a warning rather than failing the build.
+
+Most of what `tools` provided now lives in the command line tools, which this action installs and adds to `$PATH`
+regardless of the `packages` input, so these need no install step at all:
+
+`apkanalyzer` `avdmanager` `lint` `screenshot2` `sdkmanager` `retrace` `resourceshrinker` `profgen` `d8` `r8`
+
+The emulator was split out of `tools` into its own package, request it explicitly if you need it:
+
+```yaml
+- name: Setup Android SDK
+  uses: android-actions/setup-android@v4
+  with:
+    packages: 'platform-tools emulator'
+```
+
+The remaining `tools` contents have no replacement in the current SDK: `android` was superseded by `sdkmanager` and
+`avdmanager`, ProGuard by [R8](https://developer.android.com/build/shrink-code), and `monitor`, `ddms`, `monkeyrunner`
+and `uiautomatorviewer` were dropped without one.
 
 ## SDK Version selection
 

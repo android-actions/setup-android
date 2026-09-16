@@ -175,6 +175,19 @@ async function run(): Promise<void> {
     .filter(function (element, index, array) {
       return element
     })
+    .filter(function (pkg) {
+      // The 'tools' package is deprecated and no longer served by Google,
+      // asking sdkmanager for it fails the whole action.
+      // Its replacement, cmdline-tools, is already installed by this action.
+      if (pkg === 'tools') {
+        core.warning(
+          "Skipping deprecated package 'tools', it is no longer available in the Android SDK repository. " +
+            'The command line tools installed by this action replace it, see https://developer.android.com/tools#tools-sdk'
+        )
+        return false
+      }
+      return true
+    })
   for (const pkg of packages) {
     await callSdkManager(sdkManagerExe, pkg)
   }
