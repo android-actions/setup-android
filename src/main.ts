@@ -7,6 +7,8 @@ import * as os from 'os'
 
 function getVersionShort(versionLong: string): string {
   switch (versionLong) {
+    case '15859902':
+      return '22.0'
     case '14742923':
       return '20.0'
     case '12266719':
@@ -41,6 +43,7 @@ const VERSION_SHORT = getVersionShort(VERSION_LONG)
 
 const COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${VERSION_LONG}_latest.zip`
 const COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${VERSION_LONG}_latest.zip`
+const COMMANDLINE_TOOLS_MAC_ARM64_URL = `https://dl.google.com/android/repository/commandlinetools-mac_arm64-${VERSION_LONG}_latest.zip`
 const COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${VERSION_LONG}_latest.zip`
 
 const ANDROID_HOME_SDK_DIR = path.join(os.homedir(), '.android', 'sdk')
@@ -105,7 +108,11 @@ async function installSdkManager(): Promise<string> {
     if (process.platform === 'linux') {
       cmdlineToolsURL = COMMANDLINE_TOOLS_LIN_URL
     } else if (process.platform === 'darwin') {
-      cmdlineToolsURL = COMMANDLINE_TOOLS_MAC_URL
+      if (Number(VERSION_LONG) >= 15859902) {
+        cmdlineToolsURL = COMMANDLINE_TOOLS_MAC_ARM64_URL
+      } else {
+        cmdlineToolsURL = COMMANDLINE_TOOLS_MAC_URL
+      }
     } else if (process.platform === 'win32') {
       cmdlineToolsURL = COMMANDLINE_TOOLS_WIN_URL
     } else {

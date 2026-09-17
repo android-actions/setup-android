@@ -23152,6 +23152,8 @@ var fs4 = __toESM(require("fs"));
 var os6 = __toESM(require("os"));
 function getVersionShort(versionLong) {
   switch (versionLong) {
+    case "15859902":
+      return "22.0";
     case "14742923":
       return "20.0";
     case "12266719":
@@ -23184,6 +23186,7 @@ if (VERSION_LONG.includes("/") || VERSION_LONG.includes("\\")) {
 var VERSION_SHORT = getVersionShort(VERSION_LONG);
 var COMMANDLINE_TOOLS_WIN_URL = `https://dl.google.com/android/repository/commandlinetools-win-${VERSION_LONG}_latest.zip`;
 var COMMANDLINE_TOOLS_MAC_URL = `https://dl.google.com/android/repository/commandlinetools-mac-${VERSION_LONG}_latest.zip`;
+var COMMANDLINE_TOOLS_MAC_ARM64_URL = `https://dl.google.com/android/repository/commandlinetools-mac_arm64-${VERSION_LONG}_latest.zip`;
 var COMMANDLINE_TOOLS_LIN_URL = `https://dl.google.com/android/repository/commandlinetools-linux-${VERSION_LONG}_latest.zip`;
 var ANDROID_HOME_SDK_DIR = path6.join(os6.homedir(), ".android", "sdk");
 var ANDROID_SDK_ROOT = process.env["ANDROID_SDK_ROOT"] || ANDROID_HOME_SDK_DIR;
@@ -23218,7 +23221,11 @@ async function installSdkManager() {
     if (process.platform === "linux") {
       cmdlineToolsURL = COMMANDLINE_TOOLS_LIN_URL;
     } else if (process.platform === "darwin") {
-      cmdlineToolsURL = COMMANDLINE_TOOLS_MAC_URL;
+      if (Number(VERSION_LONG) >= 15859902) {
+        cmdlineToolsURL = COMMANDLINE_TOOLS_MAC_ARM64_URL;
+      } else {
+        cmdlineToolsURL = COMMANDLINE_TOOLS_MAC_URL;
+      }
     } else if (process.platform === "win32") {
       cmdlineToolsURL = COMMANDLINE_TOOLS_WIN_URL;
     } else {
