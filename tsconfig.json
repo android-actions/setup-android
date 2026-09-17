@@ -6,6 +6,7 @@
     "lib": [
       "ES2024"
     ],
+    "types": ["node", "jest"],
     "outDir": "./lib",
     "rootDir": "./src",
     "strict": true,
