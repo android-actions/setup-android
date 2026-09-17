@@ -66,6 +66,7 @@ jobs:
           - windows-2025
           - windows-2022
         cmdline-tools-version:
+          - 15859902
           - 14742923
           - 12266719
           - 11479570
