@@ -41,7 +41,7 @@
     "jest": "^30.5.1",
     "jest-circus": "^30.3.0",
     "js-yaml": "^5.4.2",
-    "prettier": "^3.9.7",
+    "prettier": "^3.9.9",
     "ts-jest": "^29.4.12",
     "typescript": "^6.0.3"
   }
